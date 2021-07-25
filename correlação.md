@@ -104,6 +104,54 @@ ggplot(data=sumdata,mapping=aes(x=Continente)) +
   theme_classic()
 ```
 
+
+## Outra análises de correlação
+O pacote Expdes `pacman::p_load(ExpDes)` possui um conjunto de teste de significância CRD que calcula vários testes:
+- A variância (Analysis of Variance Table), onde h0 corresponde a não possuir variância;
+- Teste de normalidad de Shapiro-Wilk, onde h0 significa dados normal;
+- Homogeneidade do teste de variância, onde h0 significa que são homogêneos;
+- teste Tukey para comparar as médias e verificar aquelas que diferem. 
+
+Vamos ver para pontos por décadas.
+`crd(planilhatotal$Década, planilhatotal$Pontos, mcomp = "tukey", sigF = 0.01, sigT = 0.01)`
+
+Fica claro que os dados variam, não sao normal, que não são homogenos e que 1930 e 2010 se isolam, sendo o resto dos grupos em estados intermediários. O mesmo ocorre para subcontinente, gênero e outros.
+
+### Teste de Wilcoxon
+Agora, como comparar as médias em dados não paramétricos, como substituir o anova. Uma forma é o teste de Wilcoxon, que é usado para dados não paramétricos com grande diferença de magnitude para usado para comparar amostras relacionadas, amostras combinadas ou medições repetidas em uma única amostra para avaliar se suas classificações de médias populacionais diferem. Vamos seguir o seguinte [site](https://www.r-bloggers.com/2021/05/wilcoxon-signed-rank-test-in-r/)
+Primeiro o apcote. 
+`pacman::p_load(ggpubr,reshape, psych, exactRankTests)`
+
+Agora,vamos isolar o conjunto de dados que iremos comparar. No caso vai ser o tipo de álbum, entre principais e extras.
+``` 
+Principal <- planilhatotal %>% subset(planilhatotal$Classificação == "Principal")
+Principal <- Principal$Pontos
+Extra <- planilhatotal %>% subset(planilhatotal$Classificação == "Extra")
+Extra <- Extra$Pontos
+Tipo <- cbind(Principal,Extra)
+Tipo <- melt(Tipo)
+``` 
+Feito isso, vamos ver no gráfico:
+``` 
+ggboxplot(Tipo, x = "X2", y = "value", alpha = 0.5,
+          color = "X2", palette = c("#00AFBB", "#E7B800"), fill = "X2", 
+          order = c("Principal", "Extra"),
+          ylab = "Valor", xlab = "Groupos")
+``` 
+Fica mais cláro que a média de álbuns principais é um pouco maior que de extras, mas esses apresenta os maiores outliers. Mas será significativamente diferentes?
+
+Separando os dados, vamos testá-los. Primeiro vamos aleatorizar as amostras e pegar 100 de 500 amostras.
+``` 
+Principal <- sample(1:500, 100, replace = T)
+Extra <- sample(1:500, 100, replace = T)
+``` 
+Agora vamos testar:
+``` 
+res <- wilcox.exact(Principal,Extra, paired = TRUE)
+res 
+``` 
+A hipótese nula é que eles são iguais e isso foi confirmado, já que o p não foi menor que 0,05. Ou seja, apesar da pequena diferença eles podem ser considerados iguais.
+
 ## Two-Way Anova
 Quando são duas variáveis a serem comparadas. Para	conhecer	os	efeitos	isolados	de	cada	um	dos	factores	testam-se	as	
 hipóteses:	
@@ -223,7 +271,7 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
   geom_point() +
   theme_classic()
 ``` 
-
+## Gráficos
 Um exemplo de gráfico mais elaborado que mede a regressão linear de pontos por ano de lançamento por continente. 
 ``` 
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
@@ -281,126 +329,40 @@ ggplot(planilhatotal, aes(x=Correção , y = Base, colour = Classificação)) +
 ``` 
 
 # Comparação de médias
-##### Pacotes
+Visto as anãlises de normalidade, variância e regressão, passamos para comparações de médias. Primeiro os pacotes:
+``` 
 pacman::p_load(jtools, sandwich, lme4, ggstance, vegan, rpart) 
 require(jtools,rpart,vegan)
-
-### Gráficos
-summary(aov(planilhatotal$Pontos ~ factor(planilhatotal$Gênero))) 
+``` 
+Primeiro é necessário ver se essas médias diferem. Escolhemos agora pontos por gênero. Primeiro um total com uma ANOVA simples, como foi para continentes.
+`summary(aov(planilhatotal$Pontos ~ factor(planilhatotal$Gênero)))`
+E agora um por fator:
+``` 
 a<-lm(planilhatotal$Pontos ~ factor(planilhatotal$Gênero)) 
-#pacman::p_load(car)
-#avPlots(a)
-#plot(a, which=c(1,2,3,4,5,6))
 summ(a)
-#summ(a, robust = "HC1")
-#summ(a, scale = TRUE, n.sd = 2)
-#summ(a, center = TRUE)
-#summ(a, confint = TRUE, digits = 3)
-#glm(planilhatotal$Altitude ~ planilhatotal$Species)
-
-##### Gênero
+``` 
+Uma boa forma de ver se as médias de fatores são diferentes são jogando em um gráfico. 
+``` 
 b<-glm(Pontos ~ Gênero, data = planilhatotal)
-#summ(b)
-#summ(b, exp = TRUE)
-#c<-lmer(planilhatotal$Altitude ~ planilhatotal$Species) #randomização, não deu certo
-#jtools::plot_summs(b)
-#plot_summs(b)
-#plot_summs(b, scale = TRUE)
-#plot_summs(b, scale = TRUE, inner_ci_level = .9)
 plot_summs(b, scale = TRUE, plot.distributions = TRUE, inner_ci_level = .9)
-#pacman::p_load(car)
-#avPlots(b)
+``` 
+Note que rock está mais perto da média, é o esperado por ser o ritmo com a maior quantidade de pontos e, consequentemente, mais responsável pela aferição da média. Experimental e Folklore, por possuirem poucos álbuns, apresenta uma grande variância. Agora, vamos ver por tipo de álbum. 
+``` 
+b <- lm(Pontos ~ Tipo, data = planilhatotal) #some os primeiros de cada grupo
+summ(b)
+``` 
+Primeiro verificamos em tabela e agora o gráfico.
+``` 
+effect_plot(b, pred = Order, interval = TRUE, plot.points = TRUE) #não faz sentido
+plot_summs(b, scale = TRUE, plot.distributions = TRUE, inner_ci_level = .9)
+``` 
 
-##### Tipo
-fit <- lm(Pontos ~ Tipo, data = planilhatotal) #some os primeiros de cada grupo
-summ(fit)
-effect_plot(fit, pred = Order, interval = TRUE, plot.points = TRUE) #não faz sentido
-plot_summs(fit, scale = TRUE, plot.distributions = TRUE, inner_ci_level = .9)
+## Cluster
+Outra forma de ver os dados é fazer uma análise de similaridade de Jaccard e plotar em um cladograma.
+`pacman::p_load("ade4")`
 
-
-# Significância
-### Teste de significância CRD (CV, Shapiro-Wilk, Homogenety, Tykey)
-##### Pacotes - Expdes - pacote de análise, normalidade, Turkey, shapiro-wilk e afins
-pacman::p_load(ExpDes) 
-
-##### CRD
-crd(planilhatotal$Década, planilhatotal$Pontos, mcomp = "tukey", sigF = 0.01, sigT = 0.01) 
-##### Variância + Shapiro + homogeneidade + agrupamento
-
-crd(planilhaalbum$Subcontinente, planilhaalbum$Pontos, mcomp = "tukey", sigF = 0.01, sigT #as tabelas tem que ser iguais
-    = 0.01)
-
-# Teste de Wilcoxon
-#[site](https://www.r-bloggers.com/2021/05/wilcoxon-signed-rank-test-in-r/)
-##### Usado para dados não paramétricos com grande diferença de magnitude para usado para comparar amostras relacionadas, amostras combinadas ou medições repetidas em uma única amostra para avaliar se suas classificações de médias populacionais diferem
-
-### Pacotes
-pacman::p_load(ggpubr,reshape, psych, exactRankTests)
-#install.packages(exactRankTests)
-
-#### Tipo
-Principal <- planilhatotal %>% subset(planilhatotal$Classificação == "Principal")
-Principal <- Principal$Pontos
-Extra <- planilhatotal %>% subset(planilhatotal$Classificação == "Extra")
-Extra <- Extra$Pontos
-Tipo <- cbind(Principal,Extra)
-Tipo <- melt(Tipo)
-
-#### Gráfico
-ggboxplot(Tipo, x = "X2", y = "value",
-          color = "X2", palette = c("#00AFBB", "#E7B800"), fill = "X2", 
-          order = c("Principal", "Extra"),
-          ylab = "Valor", xlab = "Groupos")
-
-#### Dados
-describeBy(Tipo,Tipo$X2)          
-
-###### 100 de 500 amostras
-Principal <- sample(1:500, 100, replace = T)
-Extra <- sample(1:500, 100, replace = T)
-###### Testar se o segundo valor é maior que o primeiro (, alternative = "less")  para testar se é menor)
-res <- wilcox.exact(Principal,Extra, paired = TRUE)
-res          
-###### Hipótese negada, o primeiro é maior
-
-##### Valor exato
-wilcox.exact(Principal, Extra, data = data, paired = TRUE, alternative = "greater")
-###### Com base no teste, foi negado o aumento significativa entre Principal para Extra - houve diminuição.          
-
-#### Dados
-Live <- planilhatotal %>% subset(planilhatotal$Gravação == "Live")
-Live <- Live$Pontos
-Estúdio <- planilhatotal %>% subset(planilhatotal$Gravação == "Estúdio")
-Estúdio <- Estúdio$Pontos
-Tipo <- cbind(Live,Estúdio)
-Tipo <- melt(Tipo)
-
-#### Gráfico
-ggboxplot(Tipo, x = "X2", y = "value",
-          color = "X2", palette = c("#00AFBB", "#E7B800"), fill = "X2", 
-          order = c("Live", "Estúdio"),
-          ylab = "Valor", xlab = "Groupos")
-
-#### Dados
-describeBy(Tipo,Tipo$X2)          
-
-###### 100 de 500 amostras
-Live <- sample(1:500, 100, replace = T)
-Estúdio <- sample(1:500, 100, replace = T)
-###### Testar se o segundo valor é maior que o primeiro (, alternative = "less")  para testar se é menor)
-res <- wilcox.exact(Live,Estúdio, paired = TRUE)
-res          
-###### Hipótese negada, o primeiro é maior (??)
-
-##### Valor exato
-wilcox.exact(Live, Estúdio, data = data, paired = TRUE, alternative = "greater")
-###### Com base no teste, foi aceito (>0,95) o aumento significativa entre Live para Eestúdio - houve diminuição.         
-
-# Cluster
-### Pacotes
-pacman::p_load("ade4")
-
-##### Cluster Gênero + país 
+Vamos ver se existe alguma similaridade entre os gêneros considerando os países que possuem álbuns nos diversos gêneros. 
+``` 
 local<-reshape2::dcast(planilhatotal, Gênero ~ País, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) 
@@ -410,38 +372,17 @@ hc <- hclust(d)               # apply hierarchical clustering
 #png(filename="/home/user/Área de Trabalho/Música/5.clust_gen_pais.png",width=800,height=600) #local e tmamanho
 plot(hc, labels=local$ID)    # plot the dendrogram
 #dev.off()
-
-##### Cluster Lançado + Estilo
-local<-reshape2::dcast(planilhatotal, Lançado ~ Estilo) #, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) 
-#method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
-hc <- hclust(d)               # apply hierarchical clustering 
-#par(mgp=c(1,1,0)) #exportar a imagem
-#png(filename="/home/user/Área de Trabalho/Música/5.clust_ano_genr.png",width=800,height=600) #local e tmamanho
-plot(hc, labels=local$ID)    # plot the dendrogram
-#dev.off()
-
-##### Cluster Década + Gênero
-local<-reshape2::dcast(planilhatotal, Década ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) 
-#method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
-hc <- hclust(d)               # apply hierarchical clustering 
-#par(mgp=c(1,1,0)) #exportar a imagem
-#png(filename="/home/user/Área de Trabalho/Música/5.clust_decd_gen.png",width=800,height=600) #local e tmamanho
-plot(hc, labels=local$ID)    # plot the dendrogram
-#dev.off()
-
-##### Cluster País + Categoria
-###### Filtro
+``` 
+Nota-se que alguns grupos foram criados. Um com gêneros mais mainstream sendo irmão de um de música americana. Outro com ritmos brasileiros. O mesmo pode ser realizado com décadas, subcontinente e outros. Vamos testar agora um agrupamento de países por categoria de gêneros. Primeira vamos filtrar os dados retirando vários.
+``` 
 p2 <- planilhatotal <- subset(planilhatotal,Subcontinente!="Varios") #tirar Vários de subcontintete
 p2 <- p2 %>%  subset(Pontos > 8) 
 #planilhaalbum <- subset(planilhaalbum,Tipo!="Coletânea") #tirar n/a da espécies
-
-###### Gráfico
+``` 
+Agora o cluster:
+``` 
 pacman::p_load("ade4")
-local<-reshape2::dcast(p2, País ~ Categoria, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
@@ -449,31 +390,27 @@ hc <- hclust(d)               # apply hierarchical clustering
 #png(filename="/home/user/Área de Trabalho/Música/5.clus_pais_categ.png",width=800,height=600) #local e tmamanho
 plot(hc, labels=local$ID)    # plot the dendrogram
 #dev.off()
+``` 
+USA e Inglaterra ficaram próximos, por serem os países com mais dados, sendo a maior proporção de rock aioria de categorias de rock.
 
-# Correlação
+## Correlação
+Análises de correlação podem ser positivas ou negativas. Aqui, usando apenas variáveis numéricas, vamos comparar pontps e ano.
+``` 
 planilhatotal %>% 
-  subset(Lançado >= 0) %$% #escolher a partir dos dados (relação de alt com as anos)
+  subset(Lançado >= 0) %$% #escolher a partir dos dados 
   cor(Pontos, Lançado) #correlação dos dados selecionados, numéricos
-  #correlação negativa entre os pontos e as datas
-  
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/correlation-analysis-different-types-of-plots-in-r/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16209293593076&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fcorrelation-analysis-different-types-of-plots-in-r%2F)
+```   
+Percebe-se uma correlação negativa entre os pontos e as datas. Agora, graficamente isso pode ser mai fácil de ser entendido, seguiremos segido o site a seguir. [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/correlation-analysis-different-types-of-plots-in-r/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16209293593076&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fcorrelation-analysis-different-types-of-plots-in-r%2F)
 
-##### Pacotes
+Primeiro os pacotes
+``` 
 remotes::install_github("r-link/corrmorant")
 pacman::p_load(corrmorant,tidyverse,dplyr)
-
-##### Raiz + país
-###### Cálculo
-cor<-reshape2::dcast(planilhatotal, País ~ Raiz, value.var = "Pontos", fun.aggregate = sum)
+``` 
+Vamos ver se a raiz musical são correlacionados pelos países. 
+``` 
+cor<-reshape2::dcast(planilhatotal, Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
 cor=data.frame(cor, row.names=1)
-###### Gráfico
-corrmorant(cor, style = "binned") +
-  theme_dark() +
-  labs(title = "Correlations")
-#1 max correlação positiva
-#-1 max correlação negativa
-
-###### Gráfico 2
 ggcorrm(data = cor) +
   lotri(geom_point(alpha = 0.5)) +
   lotri(geom_smooth()) +
@@ -483,46 +420,21 @@ ggcorrm(data = cor) +
   dia_histogram(lower = 0.3, fill = "grey80", color = 1) +
   scale_fill_corr() +
   labs(title = "Correlação Continentes por gênero musical")
-#ggsave("10.correl_pais_raiz_cor.png",width = 15, height = 8, dpi = 600)
+#ggsave("10.correl_cont_gênero_cor.png",width = 15, height = 8, dpi = 600)
+``` 
+O 1 é o máximo de correlação positiva e o -1 o máximo correlação negativa. Nota-se que vários são os que apresentam maios correlação com América, Eurpa e Oceania, por agrupar geralmente países desse continente. Europa e América e Europa e Oceania apresentam alta correlação de gêneros também. 
 
-###### Gráfico 3
+Um outro modelo de gráfico a seguir, mas agora iremos ver a correlação das raízes musicais de álbuns por país.
+``` 
+cor<-reshape2::dcast(planilhatotal, País ~ Raiz, value.var = "Pontos", fun.aggregate = sum)
+cor=data.frame(cor, row.names=1)
 library(PerformanceAnalytics)
 #par(mgp=c(1,1,0)) #exportar a imagem
 #png(filename="/home/user/Área de Trabalho/Música/10.correl_pais_rais_stat.png",width=800,height=600) #local e tmamanho
 chart.Correlation(cor, histogram=TRUE, pch="+")
 #dev.off()
-
-##### Continente + Gênero
-###### Cálculo
-cor<-reshape2::dcast(planilhatotal, Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
-cor=data.frame(cor, row.names=1)
-
-###### Gráfico
-corrmorant(cor, style = "binned") +
-  theme_dark() +
-  labs(title = "Correlations")
-
-#1 max correlação positiva
-#-1 max correlação negativa
-
-###### Gráfico 2
-ggcorrm(data = cor) +
-  lotri(geom_point(alpha = 0.5)) +
-  lotri(geom_smooth()) +
-  utri_heatmap() +
-  utri_corrtext() +
-  dia_names(y_pos = 0.15, size = 3) +
-  dia_histogram(lower = 0.3, fill = "grey80", color = 1) +
-  scale_fill_corr() +
-  labs(title = "Correlação Continentes por gênero musical")
-#ggsave("10.correl_gen_contin_cor.png",width = 15, height = 8, dpi = 600)
-
-###### Gráfico 3
-library(PerformanceAnalytics)
-#par(mgp=c(1,1,0)) #exportar a imagem
-#png(filename="/home/user/Área de Trabalho/Música/10.correl_gen_contin_stat.png",width=800,height=600) #local e tmamanho
-chart.Correlation(cor, histogram=TRUE, pch="+")
-#dev.off()
+``` 
+Músicas americanas são bastantes correlacionadas, como esperado.
 
 
 
