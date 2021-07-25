@@ -57,21 +57,12 @@ Fica bem clato a média em 7,5 e que elas estão bem próximos da distribuição
 fit.MF.normal <- fitdist(planilhatotal$Lançado, "norm") #gráfico de distribuição normal
 plot(fit.MF.normal)
 ```
-
-Pensando em pontos, será que se excluir coletâneas e singles a distribuição mudaria? primeiro vamos selecionar os dados.
-```
-p2 <- planilhatotal
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-```
-
 # Análise de Variância
 Primeiro vamos instalar o pacote.
 `pacman::p_load(tidyverse, FSA, emmeans)`
 
 Agora vamos ver os grupos por décadas:
-`aggregate(Pontos ~ Década, planilhaalbum, var)` 
+`aggregate(Pontos ~ Década, planilhatotal, var)` 
 
 Nota-se que as médias de pontos nas décadas não são o mesmos.Um teste de homogeneidade de variância de Bartlett vai testar se há desigualdade. A hipótese nula é que são iguais, se o p for menos que 0,05 esta hipótese foi negada, que foi o caso.
 `bartlett.test(Pontos ~ Década, planilhatotal)`
@@ -112,7 +103,6 @@ ggplot(data=sumdata,mapping=aes(x=Continente)) +
   geom_point(aes(y=mn)) +
   theme_classic()
 ```
-
 
 ## Two-Way Anova
 Quando são duas variáveis a serem comparadas. Para	conhecer	os	efeitos	isolados	de	cada	um	dos	factores	testam-se	as	
@@ -175,66 +165,67 @@ ivr <- lm(Pontos~Lançado*Continente,data=planilhatotal)
 anova(ivr)
 FSA::fitPlot(ivr,interval="confidence")
 ```  
-ou 
+repare que é o mesmo do anova two-away. Outro gráfico: 
 ```
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
   geom_smooth(method="lm",alpha=0.2) +
   geom_point() +
   theme_classic()
 ```  
-## Regressão lógica (para dados binários - 0 e 1) - 
+
+Dados binários também podem ser analisados para vê se ocorre diferença entre eles. 
+```  
 logreg <- glm(Binário~Pontos,data=planilhatotal,family="binomial")
 summary(logreg)  
+```  
+Que foi o caso, existe mais o dado 1 (que equivale a álbuns principais) do que 0 (que seria o extras). Uma forma d ever isso é por gráfico. 
+`fitPlot(logreg)`
 
-#### Gráfico
-fitPlot(logreg)
-
-### Manual
+Ou um gráfico ggplot
+```  
 logregdf <- dplyr::select(planilhatotal,Binário,Pontos)
 logregdf$fit <- predict(logreg,newdata=logregdf,type="response",interval="confidence")
 
-#### Gráfico
-FSA::peek(logregdf,n=6)
-
-##### Normal
-#ggplot(logregdf,aes(x=Pontos)) +
-  geom_point(aes(y=Binário),alpha=0.25) +
-  geom_line(aes(y=fit),size=1)
-  
-#### Sombra
 ggplot(planilhatotal,aes(x=Pontos,y=Binário)) +
   geom_smooth(method="glm",alpha=0.2,
               method.args=list(family="binomial")) +
-  geom_point(alpha=0.25)
-
-#### Diferenciar fatores
+  geom_point(alpha=0.25) +
+  theme_classic ()
+```  
+Como antes também é possível fazer a diferenciação dos fatores.No caso escolhemos os continentes.
+``` 
 logreg2 <- glm(Binário~Pontos*Continente,data=planilhatotal,family="binomial")
 
 ggplot(planilhatotal,aes(x=Pontos,y=Binário,color=Continente,fill=Continente)) +
   geom_smooth(method="glm",alpha=0.2,
               method.args=list(family="binomial")) +
-  geom_point(alpha=0.25)
-  
+  geom_point(alpha=0.25) +
+  theme_classic()
+``` 
+
 ## Regressão polinomial
+Em casos que a regressão não é uma reta pode-se fazer um modelo de regressão para duas variáveis, sendo uma dependente e uma independente. A variável independente é expandida num polinômio com geração de novas variáveis. No nosso caso foi o ano de lançamento.
+```  
 poly2 <- lm(Pontos~Lançado+I(Lançado^2),data=planilhatotal)
 summary(poly2)
+``` 
 
-### Gráficos
-FSA::fitPlot(poly2,interval="confidence")
+Note o gráfico a forte tendência de queda na média de pontos nos anos mais recentes.
+`FSA::fitPlot(poly2,interval="confidence")`
 
+O mesmo para o gráfico em ggplot que pode ser desmembrado em fatores. 
+``` 
 polydf <- dplyr::select(planilhatotal,Lançado,Pontos)
 polydf <- cbind(polydf,predict(poly2,newdata=polydf,interval="confidence"))
-#ggplot(polydf,aes(x=Lançado)) +
-  geom_ribbon(aes(ymin=lwr,ymax=upr),alpha=0.2) +
-  geom_line(aes(y=fit),size=1) +
-  geom_point(aes(y=Pontos))
-  
+
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
   geom_smooth(method="lm",formula="y~x+I(x^2)",alpha=0.2) +
-  geom_point()  
-  
-## Gráfico modelo final
-### Pontos por Lançado
+  geom_point() +
+  theme_classic()
+``` 
+
+Um exemplo de gráfico mais elaborado que mede a regressão linear de pontos por ano de lançamento por continente. 
+``` 
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
   geom_smooth(method="lm",alpha=0.1,size=1.25) +
   geom_point(size=1.5) +
@@ -253,8 +244,9 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) 
         legend.justification=c(-0.05,1.02),
         legend.title=element_blank(),
         legend.text=element_text(size=rel(1.1)))
-
-### Pontos por classificação
+``` 
+Ou um gráfico entre os tipos de álbum. 
+``` 
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Classificação,fill=Classificação)) +
   geom_smooth(method="lm",alpha=0.1,size=1.25) +
   geom_point(aes(size = Soma), alpha = 0.35) + #(size=1.5) +
@@ -273,8 +265,10 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Classificação,fill=Classifi
         legend.justification=c(-0.05,1.02),
         legend.title=element_blank(),
         legend.text=element_text(size=rel(1.1)))
+``` 
 
-### Limites outros
+Agora uma correlação entre a base de ponto com o sistema de correção dos tipos de gráficos:
+``` 
 ggplot(planilhatotal, aes(x=Correção , y = Base, colour = Classificação)) + 
   geom_point(aes(shape = Tipo, size = Soma), alpha = 0.3) +
   #geom_line(aes(colour = Tipo), alpha = 0.3) +
@@ -284,6 +278,7 @@ ggplot(planilhatotal, aes(x=Correção , y = Base, colour = Classificação)) +
   #geom_count(aes(x = Avaliação, y = Avaliação.1), colour = "black") +
   theme_classic() #correlação negativa
 #ggsave("1.Point_Base_Corre.png",width = 10, height = 6, dpi = 300)
+``` 
 
 # Comparação de médias
 ##### Pacotes
