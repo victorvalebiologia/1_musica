@@ -1,88 +1,63 @@
-# INICIAR
-## Música -> distribuição dos dados
-#upgride de pacotes 'update.packages(repos='http://cran.rstudio.com/ ', ask=FALSE, checkBuilt=TRUE)'
+# Início
+Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são análises de correlação.
 
-## Pastas 
+Primeiro, vamos indicar as pastas corretas.
+```
 getwd()
 setwd("/home/user/Área de Trabalho/Música") 
-#Mudança de diretório para pasta do projeto
-#p_opendir(path.expand("~")) #abrir pasta
-#p_opendir(pacman:::p_basepath()) #abir pasta pacotes
+```
 
-### Pacotes e entradas de arquivos
+Agora baixar e ler alguns pacotes básicos.
+
+```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-#pacman::p_load(readODS, openxlsx) 
-#setRepositories(ind=c(1:9))
-##### Pacote de leitor de ods (reserva)
-#caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_06_grancol_rbananal.ods"
-#planilhatotal <- read_ods(caminho.do.arquivo,sheet = 1,col_names = T,na = "")
-#p_opendir(path.expand("~")) #abrir pasta
-#p_opendir(pacman:::p_basepath()) #abir pasta pacotes
-### Pacotes e entradas de arquivos
-if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-#pacman::p_load(readODS, openxlsx) 
-#setRepositories(ind=c(1:9))
-##### Pacote de leitor de ods (reserva)
-#caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_06_grancol_rbananal.ods"
-#Xplanilhatotal <- read_ods(caminho.do.arquivo,sheet = 1,col_names = T,na = "")
-## Pacote de análise e leitura de dados, gráficos
 pacman::p_load(magrittr,dplyr) #magrittr para operações de pipe/dplyr para manipulador de dados
-##### Operador Pipe - usar o valor resultante da expressão do lado esquerdo como primeiro argumento da função do lado direito
-##### As medidas de dispersão são estatísticas descritivas, que quantificam de algum modo a variabilidade dos dados, geralmente utilizando como referência uma medida de posição.
-## Pacotes gŕaficos
 pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
-#scripta reservas
-#installed.packages('ggplot2')
-#install.packages("devtools")
-#fazer gráficos e extensões para salvar e inserir imagem
-#require(remotes)
-#remotes::install_version
-#install_version("ggplot2", version = "2.0.0", repos = "http://cran.us.r-project.org")
-#Library(ggplot2)
-## Pacote ecologia
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 
-# Caregar Planilha
+```
+Agora vamos adicionar a planilha.
+```
 pacman::p_load(openxlsx) 
 caminho.do.arquivo <- "/home/user/Área de Trabalho/Música/musica_estatistica.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                            sheet = 1, # em qual planilha estão os dados
                            colNames = T, # as colunas dos dados possuem nomes?
                            na.strings = "NA") # como estão identificados os dados omissos?
+
 head(planilhatotal)
-
-### Teste de plots
-ts.plot(planilhatotal$Lançado)
-
-boxplot(planilhatotal$Pontos)
-
-### Corrigir planilha
-##### Retirar os NA 
+```
+E filtrar ela.
+```
 planilhatotal <- subset(planilhatotal, !is.na(Lançado)) #tirar n/a da ano
 planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
-##### Planilhas extras -> só álbum
-planilhaalbum <- planilhatotal
-planilhaalbum <- subset(planilhaalbum,Tipo!="Coletânea") #tirar n/a da espécies
-planilhaalbum <- subset(planilhaalbum,Tipo!="Single") #tirar n/a da espécies
-planilhaalbum <- subset(planilhaalbum,Tipo!="Bonus") #tirar n/a da espécies
-head(planilhaalbum)
+```
+Agora testaremos antes de começar as análises com alguns gráficos simples
+```
+ts.plot(planilhatotal$Lançado)
+boxplot(planilhatotal$Pontos)
+```
 
-# Distribuição
-## Distribuição dos Dados em gráficos
-ggplot(planilhaalbum, aes(x = Pontos , y = Gênero)) + 
+## Gráficos investigatórios.
+Fazer gráficos pode ser uma ótima forma de entender o conjunto de dados que temos em mãos. Por exemplo, quais são os gêneros mais comuns que eu registrei? Vamos ver um boxplot deles.
+
+```
+ggplot(planilhatotal, aes(x = Pontos, y = Gênero)) + 
   geom_boxplot(aes(colour= Raiz)) +
   #geom_violin(aes(colour= Raiz)) +
   #facet_grid(Gravação~.) +
   theme_classic() 
 #ggsave("1.Box_Gen_Pontos.png",width = 10, height = 6, dpi = 300)
+```
+Notamos que a distribuição dos pontos são similares, mas a média pode variar um pouco, tendo o rock com a média mas alta. Mas é R&B o outline de maior destaque. Se consideramor o período de lançamento, a média de gẽnero mais recente é o pop, apesar de oitline bem antigos. Já o jazz apresenta a média de anos mais antiga.
 
-### Pacote
-library(ggbeeswarm)
+Há outra forma de ver isso, agora vamos focar em ano de lançamento e vamos ver para os gêneros o período de maior concentração de álbum. Primeiro o pacote.
+`library(ggbeeswarm)`
 
-### Gráfico
+Agora o gráfico.
+```
 ymin <- min(planilhatotal$Lançado)
 ymax <- max(planilhatotal$Lançado)
-
 plot_points_ga <- ggplot() +
   geom_quasirandom(aes(x = factor(Gênero), y = Lançado),
                    data = planilhatotal) +
@@ -90,66 +65,57 @@ plot_points_ga <- ggplot() +
   ylab("Lançado") +
   theme_bw() +
   scale_y_continuous(limits = c(ymin, ymax))
-
 plot_points_ga
 #ggsave("7.distrib_gen_ano.png",width = 15, height = 8, dpi = 600)
+```
+Fica mais claro a constância de albuns de rock a partir de meados dos anos 60 e seu surgimento nos anos 50. Também percebemos melhor a concetração de álbuns de pop a partir de 200 e de jazz entre os anos 50 e 60. Se fizermos por continente perebe-se a predominância da América e Europa. 
 
-## Continente/lançado
-### Gráfico
-ymin <- min(planilhatotal$Lançado)
-ymax <- max(planilhatotal$Lançado)
+Agora, vamos comparar média de dois grupos, seguindo o seguinte [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/showing-a-difference-in-mean-between-two-groups-take-2/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16206389890747&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fshowing-a-difference-in-mean-between-two-groups-take-2%2F)
 
-plot_points_ga <- ggplot() +
-  geom_quasirandom(aes(x = factor(Continente), y = Lançado),
-                   data = planilhatotal) +
-  #facet_grid(Continente~.) +
-  xlab("Subcontinente") +
-  ylab("Lançado") +
-  theme_bw() +
-  scale_y_continuous(limits = c(ymin, ymax))
-
-plot_points_ga
-#ggsave("7.distrib_gen_ano.png",width = 15, height = 8, dpi = 600)
-
-# Diferença média de dois grupos 
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/showing-a-difference-in-mean-between-two-groups-take-2/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16206389890747&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fshowing-a-difference-in-mean-between-two-groups-take-2%2F)
-
-## Pacotes
+Primeiro os pacotes.
+```
 pacman::p_load(dabestr, ggbeeswarm)
 library(dabestr)
-
-## Tipo
+```
+Agora vamos ver se há diferença entre álbuns de estúdio e lives.
+```
 bootstrap <- dabest(planilhatotal, #demora
                     Gravação,
                     Lançado,
                     idx = c("Estúdio", "Live"),
                     paired = FALSE)
-
 bootstrap_diff <- mean_diff(bootstrap)
 #par(mgp=c(1,1,0)) #exportar a imagem
 #png(filename="/home/user/Área de Trabalho/Música/7.estud_live_pop.png",width=800,height=600) #local e tmamanho
 plot(bootstrap_diff)
 #dev.off()
+```
+Com esse gráfico fica evidente que existem bem mais álbuns de estúdio do que live e que na média, os albuns de estúdio foram lançado em um ano posterior a live. Se trocarmos o ano de lançamento pelos pontos, as médias agra são mais próximas. Esperado quando os dados apresentam uma distribuição perto da curva normla.
 
-# PCA 
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/principal-component-analysis-pca-in-r/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16204247084008&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fprincipal-component-analysis-pca-in-r%2F)
-### Pacotes
+## PCA 
+O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.Os scripts seguirão o seguinte [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/principal-component-analysis-pca-in-r/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16204247084008&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fprincipal-component-analysis-pca-in-r%2F)
+
+Primeiro os pacotes:
+```
 pacman::p_load(psych)
 library("devtools")
 library("ggbiplot")
 #install_github("vqv/ggbiplot")
+```
 
-### Gênero 
-##### Selecionar Tabelas
+Agora vamos ver como os países explicam os gêneros. Quais países apresentam o maior poder de explicação para os gêneros catalogados. Primeiro vamos separar as tabelas.
+
+```
 local<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(planilhatotal, Continente + País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
+grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 grupo2<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
-
-##### Gráfico
+```
+Agora vamos verm em gráfico:
+```
 wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         #groups = grupo$Continente, 
+         groups = grupo$Raiz, 
          ellipse = TRUE, circle = TRUE) +
   geom_label_repel(aes(label = grupo2$País), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
@@ -159,40 +125,23 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
 #ggsave("5.PCA_pais_gen.png",width = 15, height = 8, dpi = 600)
+```
+Percebe-se que dois países possuem o maior poder de explicação para os gêneros. Primeiro o EUA, com mais de 45%, que explica a presença de rock, R&B  ejazz, por exemplo. Já com 25% o Brasil que esplicaria o samba e a música brasileira. 
 
-##### Gráfico Resumo
+Um gráfico resumido e o sumário podem ser visto também. 
+```
 summary(prcomp(local, scale = TRUE))
 biplot(prcomp(local, scale = TRUE))
-
-### Continente
-##### Selecionar Tabelas
-local<-reshape2::dcast(planilhatotal, Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
-grupo2<-reshape2::dcast(planilhatotal, Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
-
-##### Gráfico
-wine.pca <- prcomp(local, scale. = TRUE)
-ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         groups = grupo$Raiz, 
-         ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo2$Gênero), size=4, alpha= 1, #funciona no zoom
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-    scale_color_discrete(name = '') +
-  theme(legend.direction = 'horizontal', legend.position = 'top') +
-  theme_classic()
-#ggsave("5.PCA_gen_cont.png",width = 15, height = 8, dpi = 600)
-
-### Subontinente
-##### Selecionar Tabelas
+```
+Um outro exemplo seria quais subcontinentes apresentariam quais gêneros mais catalogados. Vamos selecionar a tabela primeiro.
+```
 local<-reshape2::dcast(planilhatotal, Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
 grupo2<-reshape2::dcast(planilhatotal, Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
-
-##### Gráfico
+```
+E agora o gráfico:
+```
 wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
          groups = grupo$Raiz, 
@@ -205,62 +154,14 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
 #ggsave("5.PCA_gen_subcont.png",width = 15, height = 8, dpi = 600)
+```
+Com cerca de 50% o rock explicaria quase todos os subcontinentes, exceto para o caribe. E a diferença entre eles seria pela proporção d e Rock e Pop, com 15%, onde quanto maios presença de música pop melhor expliacria regiões da Europa e a ausência do pop expliacria melhor as Américas e Ilhas Britânicas. Fica claro que a maior porporção de rock e de pop são a chave para entender o gráfico.
 
-##### Resumo
-#plot(prcomp(local, scale. = TRUE))
-summary(prcomp(local, scale = TRUE))
-biplot(prcomp(local, scale = TRUE))
-
-### País
-##### Selecionar Tabelas
-p2 <- planilhatotal <- subset(planilhatotal,Continente!="Varios") #tirar Vários de Contintete
-p2 <- planilhatotal <- subset(p2,Subcontinente!="Varios") #tirar Vários de subcontintete
-p2 <- p2 %>%  subset(Pontos > 8) 
-local<-reshape2::dcast(p2, Gênero ~ País, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(p2, Raiz + Gênero ~ Continente, value.var = "Pontos", fun.aggregate = sum)
-
-##### Gráfico
-wine.pca <- prcomp(local, scale. = TRUE)
-ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         groups = grupo$Raiz, 
-         ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Gênero), size=4, alpha= 1, #funciona no zoom
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  scale_color_discrete(name = '') +
-  theme(legend.direction = 'horizontal', legend.position = 'top') +
-  theme_classic()
-#ggsave("5.PCA_gen_pais.png",width = 15, height = 8, dpi = 600)
-
-
-##### Resumo
-summary(prcomp(local, scale = TRUE))
-biplot(prcomp(local, scale = TRUE))
-
-# Distribuição tempo
-### Pacotes
-pacman::p_load(ggridges, forcat)
-
-## Tipo
-### Gráficos
-## Tipo1
-gg_tx_timeseries <- planilhaalbum %>%
-  ggplot(aes(Lançado, Pontos, group = Gênero)) +
-  geom_line(aes(colour = Continente), alpha = 0.25) +
-  geom_smooth(
-    aes(group = NULL),
-    method = "loess",
-    span = 0.1,
-    se = FALSE,
-    size = 2.5,
-    color = "black") +
-  theme_minimal() +
-  labs(y = "", x = "", title = "Pontos no tempo")
-gg_tx_timeseries
-
-## Tipo2 - gênero
+## Distribuição tempo
+Outra forma de enteder nossos dados é por uma série temporal. Vamos ver quais gêneros tipos de registros foram mais comuns com o passar dos anos. Primeiro o pacote.
+`pacman::p_load(ggridges, forcat)`
+Agora o gráfico.
+```
 gg_tx_ridge <- planilhatotal %>%
   ggplot(aes(x = Lançado, y = Gênero)) +
   geom_density_ridges(
@@ -272,152 +173,76 @@ gg_tx_ridge <- planilhatotal %>%
   labs(y = "Gênero", x = "Ano", title = "Distribuição dos pontos")
 gg_tx_ridge
 #ggsave("8.ridge_gener_ano.png",width = 15, height = 8, dpi = 600)
+```
+Nesse gráfico fica evidente novamente como o jazz e um gênero com mais álbuns dos anos 50 e 60 e o pop mais contemporâneo. O mesmo dá para fazer com o tipo de registro por pontos, onde Single são grandes fornecedires de pontos e outras versões são fracos agregadores.
 
-# Tipo2 - tipo
-gg_tx_ridge <- planilhatotal %>%
-  ggplot(aes(x = Pontos, y = Tipo)) +
-  geom_density_ridges(
-    color="gray20",
-    fill="gray10",
-    alpha=0.75,
-    size=1) +
-  theme_minimal() +
-  labs(y = "Gênero", x = "Pontos", title = "Distribuição dos pontos")
-gg_tx_ridge
-#ggsave("8.ridge_tipo_pontos.png",width = 15, height = 8, dpi = 600)
+## Gráficos laterais
+Gráficos laterias são excelente para ver quais componentes são mais imprtantes de determinados cenários. Os scripts seguirão o seguinte site [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/visualization-graphs-ggside-with-ggplot/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16208562938944&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fvisualization-graphs-ggside-with-ggplot%2F)
 
+Primeiro o pacote.
+`pacman::p_load(ggside, tidyverse,tidyquant)`
 
-# Pontos e gráficos laterais
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/visualization-graphs-ggside-with-ggplot/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16208562938944&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fvisualization-graphs-ggside-with-ggplot%2F)
-## Pacotes
-pacman::p_load(ggside, tidyverse,tidyquant)
-
-### Continente
-p2<-planilhaalbum %>%
+Agora vamos ver quais continentes são mais presentes em uma escala temporal(eixo x) e na média de pontos (eixo y).
+```
+p2<-planilhatotal %>%
   ggplot(aes(Lançado, Pontos, color = Continente)) +
   geom_point(size = 2, alpha = 0.3) +
   geom_smooth(aes(color = NULL), se=TRUE) +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      fill = Continente
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  geom_ysidedensity(
-    aes(
-      x    = after_stat(count), #density para densidade
-      fill = Continente
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
+  geom_xsidedensity(aes(y = after_stat(count),
+    fill = Continente),alpha = 0.5,size = 1, position = "stack") +
+  geom_ysidedensity(aes(x = after_stat(count), #density para densidade
+      fill = Continente),alpha = 0.5, size = 1, position = "stack") +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
-  labs(title = "Distribuição dos pontos por gênero" ,
-       subtitle = "Densidade",
-       x = "Ano", y = "Pontos") +  theme(
-         ggside.panel.scale.x = 0.4,
-         ggside.panel.scale.y = 0.4
-       )
+  labs(title = "Distribuição dos pontos por gênero", subtitle = "Densidade",
+       x = "Ano", y = "Pontos") +  theme(ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
 plot(p2)
 #ggsave("9.Distr_Ponto_ano_Cont.png",width = 15, height = 8, dpi = 600)
 #p2 + ggside(x.pos = "bottom", y.pos = "left") + labs(title = "Distribuição dos pontos dos continentes por ano", subtitle = " ")
+```
+Fica claro que a América é a região com maios proporção, seguido da Europa. O mesmo pode ser feito com a raiz de gênero musical que mostra que a música anglo-americana é a mais comum, seguida por música latina nos registros mais antigos e música afro-americana mais recentemente.Ou com tipo, quase todo por álbuns.
 
-### Continente+subcontinente
-p2 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Gênero)
+Agora, vamos ver como ver os subtipos, como de subcontinente, por exemplo.
+```
+p2 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Subcontinente)
   labs(title = "Pontos para raiz musical", subtitle = "Distribuição por gêneros") +
   ggside(collapse = "x")
 #ggsave("9.Distr_Ponto_ano_Subcont.png",width = 18, height = 8, dpi = 600)
+```
+Assim, vê que a. Anglo-saxônica, Latina e Ilhas Britânicas são os grandes contribuidores destes pontos. O mesmo pode ser visto em raiz e gênero musical tendo rock como grande força. 
 
-### Raiz 
-p2<-planilhaalbum %>%
-  ggplot(aes(Lançado, Pontos, color = Raiz)) +
-  geom_point(size = 2, alpha = 0.3) +
-  geom_smooth(aes(color = NULL), se=TRUE) +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      fill = Raiz
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  geom_ysidedensity(
-    aes(
-      x    = after_stat(count),
-      fill = Raiz
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  labs(title = "Distribuição dos pontos por gênero" ,
-       subtitle = "Densidade",
-       x = "Ano", y = "Pontos") +  theme(
-         ggside.panel.scale.x = 0.4,
-         ggside.panel.scale.y = 0.4
-       )
-plot(p2)
-#ggsave("9.Distr_Ponto_ano_Raiz.png",width = 18, height = 8, dpi = 600)
-
-### Raiz + Genero
-p2 + facet_wrap(Gênero~.) + #facet_wrap(Continente~Gênero)
-  labs(title = "Pontos para raiz musical", subtitle = "Distribuição por gêneros") +
-  ggside(collapse = "x")
-#ggsave("9.Distr_Ponto_ano_gen.png",width = 18, height = 8, dpi = 600)
-
-### Continente + raiz
+Dados cruuzados também podem ser facilotados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
+```
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
+```
+E vamos plotar:
+```
 p2 <- p2 %>%
   ggplot(aes(Lançado, Pontos, color = Raiz)) +
   geom_point(size = 2, alpha = 0.3) +
   geom_smooth(aes(color = NULL), se=TRUE) +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      fill = Raiz
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  geom_ysidedensity(
-    aes(
-      x    = after_stat(count),
-      fill = Raiz
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
+  geom_xsidedensity(aes(y = after_stat(count),
+      fill = Raiz), alpha = 0.5,size = 1, position = "stack") +
+  geom_ysidedensity(aes(x = after_stat(count),
+      fill = Raiz), alpha = 0.5, size = 1,position = "stack") +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
-  labs(title = "Distribuição dos pontos por gênero" ,
-       subtitle = "Densidade",
-       x = "Ano", y = "Pontos") +  theme(
-         ggside.panel.scale.x = 0.4,
-         ggside.panel.scale.y = 0.4
-       )
+  labs(title = "Distribuição dos pontos por gênero" , subtitle = "Densidade",
+       x = "Ano", y = "Pontos") +  theme( ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
 p2 + facet_grid(Continente~Raiz, space = "free", scales = "free") +
   labs(title = "Relação continente raiz musical", subtitle = "") +
   ggside(collapse = "all")
 #ggsave("9.Distr_Ponto_ano_contin_raiz.png",width = 18, height = 8, dpi = 600)
+```
+Assim vemos que na América músicas de raizes americanas são maioria e que na europa a música anglo-americana e europeia predomina. O mesmo dá para se fazer cruzando subcontinentes, tipos de registros e outros.
 
-### Raiz + continente
+Outra forma de ver nossos dados são tmeporralmente vendo quas raízes musicais são distribuídos por continente.
+```
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
   geom_point() +
@@ -431,438 +256,62 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
   facet_grid(rows = vars(Continente), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_raiz_contin_asax.png",width = 15, height = 8, dpi = 600)
+```
+Com esse gráfico fica evidente tanto os períodos musicais quanto as médias mais altas por continente. 
 
-## Região
-### América anglosaxônica
+Outra forma de ver o dado e diminuindo a escala e vendo cada região. As principais serão listadas abaixo:
+- A. Anglo Saxônica;
+- A. Latina;
+- Caribe;
+- Ilhas Britânicas.
+- E. Ocidental;
+- E. Setentrional;
+- E. Meridional;
+- E. Centro-Oriental;
+- Oceania;
+- África;
+- Ásia.
+
+Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
+```
 p2 <- subset(planilhatotal, Subcontinente == "A. Anglo-Saxônica")
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
+```
+Agora o gráfico seprando os países por gênero musical ao longo do tempo. O gráfico lateral superior mostra a proporção de gênero e laterial a direita um boxplot dos pontos:
+```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   geom_point() +
   geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
+  geom_ysideboxplot(alpha = 0.5,size = 1) +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = Gênero),alpha = 0.5,size = 1, position = "stack") +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
-  facet_grid(rows = vars(País), scales = "free_x") +
+  #facet_grid(rows = vars(País), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_gen_subcontin_AméricaSax.png",width = 15, height = 8, dpi = 600)
-
+```
+E um gráfico mostrando os países por subcontinente.
+```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
   geom_point() +
   geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
+  geom_ysideboxplot(alpha = 0.5,size = 1  ) +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = País),alpha = 0.5,size = 1, position = "stack") +
   facet_grid(rows = vars(Subcontinente), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_pais_subcontin_Américasax.png",width = 15, height = 8, dpi = 600)
+```
 
-### América latina
-p2 <- subset(planilhatotal, Subcontinente == "A. Latina")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_AméricaLat.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_AméricaLat.png",width = 15, height = 8, dpi = 600)
-
-### Caribe
-p2 <- subset(planilhatotal, Subcontinente == "Caribe")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_Américacar.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_Américacar.png",width = 15, height = 8, dpi = 600)
-
-## Europa
-### Ilhas Britânicas
-p2 <- subset(planilhatotal, Subcontinente == "Ilhas Britânicas")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_EuropaIB.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_EuropaIB.png",width = 15, height = 8, dpi = 600)
-
-### Europa Ocidental
-p2 <- subset(planilhatotal, Subcontinente == "E. Ocidental")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_EuropaEOci.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_EuropaE.Oci.png",width = 15, height = 8, dpi = 600)
-
-### Europa Meridional
-p2 <- subset(planilhatotal, Subcontinente == "E. Meridional")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_EuropaEmer.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_EuropaEMer.png",width = 15, height = 8, dpi = 600)
-
-### Europa Setetrional
-p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_EuropaESet.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_EuropaE.Set.png",width = 15, height = 8, dpi = 600)
-
-## Ásia
-p2 <- subset(planilhatotal, Continente == "Ásia")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_Asia.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_Asia.png",width = 15, height = 8, dpi = 600)
-
-## África
-p2 <- subset(planilhatotal, Continente == "África")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_África.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_África.png",width = 15, height = 8, dpi = 600)
-
-## Oceania
-p2 <- subset(planilhatotal, Continente == "Oceania")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_subcontin_Oceania.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  geom_xsidedensity(
-    aes(
-      y    = after_stat(count),
-      color = País
-    ),
-    alpha    = 0.5,
-    size     = 1,
-    position = "stack"
-  ) +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_pais_subcontin_Oceania.png",width = 15, height = 8, dpi = 600)
 
 ## País
 ### Brasil
