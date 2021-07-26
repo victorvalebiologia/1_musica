@@ -20,7 +20,7 @@ Agora baixar e ler alguns pacotes básicos.
 
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-pacman::p_load(magrittr,dplyr) #magrittr para operações de pipe/dplyr para manipulador de dados
+pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
 pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 
