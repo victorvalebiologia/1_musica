@@ -1,6 +1,14 @@
-# Início
-Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são análises de correlação.
+# Apresentação
+Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são gráficos de distribuição das variávesi. Será dividido da seguinte forma:
+- Início;
+- Gráficos investigatórios;
+- PCA;
+- Distribuição de série temporal;
+- Gráficos laterais;
+- GIFs;
+- Gráfico de barars.
 
+## Início
 Primeiro, vamos indicar as pastas corretas.
 ```
 getwd()
@@ -157,7 +165,7 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
 ```
 Com cerca de 50% o rock explicaria quase todos os subcontinentes, exceto para o caribe. E a diferença entre eles seria pela proporção d e Rock e Pop, com 15%, onde quanto maios presença de música pop melhor expliacria regiões da Europa e a ausência do pop expliacria melhor as Américas e Ilhas Britânicas. Fica claro que a maior porporção de rock e de pop são a chave para entender o gráfico.
 
-## Distribuição tempo
+## Distribuição de série temporal
 Outra forma de enteder nossos dados é por uma série temporal. Vamos ver quais gêneros tipos de registros foram mais comuns com o passar dos anos. Primeiro o pacote.
 `pacman::p_load(ggridges, forcat)`
 Agora o gráfico.
@@ -182,6 +190,7 @@ Gráficos laterias são excelente para ver quais componentes são mais imprtante
 Primeiro o pacote.
 `pacman::p_load(ggside, tidyverse,tidyquant)`
 
+### Escala 1
 Agora vamos ver quais continentes são mais presentes em uma escala temporal(eixo x) e na média de pontos (eixo y).
 ```
 p2<-planilhatotal %>%
@@ -212,7 +221,7 @@ p2 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Subcontinente)
 ```
 Assim, vê que a. Anglo-saxônica, Latina e Ilhas Britânicas são os grandes contribuidores destes pontos. O mesmo pode ser visto em raiz e gênero musical tendo rock como grande força. 
 
-Dados cruuzados também podem ser facilotados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
+Dados cruuzados também podem ser facilitados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
 ```
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
@@ -241,7 +250,7 @@ p2 + facet_grid(Continente~Raiz, space = "free", scales = "free") +
 ```
 Assim vemos que na América músicas de raizes americanas são maioria e que na europa a música anglo-americana e europeia predomina. O mesmo dá para se fazer cruzando subcontinentes, tipos de registros e outros.
 
-Outra forma de ver nossos dados são tmeporralmente vendo quas raízes musicais são distribuídos por continente.
+Outra forma de ver nossos dados são temporalmente vendo quas raízes musicais são distribuídos por continente.
 ```
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
@@ -259,6 +268,7 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
 ```
 Com esse gráfico fica evidente tanto os períodos musicais quanto as médias mais altas por continente. 
 
+### Escala 2
 Outra forma de ver o dado e diminuindo a escala e vendo cada região. As principais serão listadas abaixo:
 - A. Anglo Saxônica;
 - A. Latina;
@@ -312,195 +322,77 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
 #ggsave("9.Distr_Ponto_ano_pais_subcontin_Américasax.png",width = 15, height = 8, dpi = 600)
 ```
 
+### Escala 3
+Também podemos ver em uma escala de país. Os principais serão listadas abaixo:
+- Brasil;
+- EUA;
+- Inglaterra;
+- Canadá.
+- Austrália.
 
-## País
-### Brasil
+Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
+```
 p2 <- subset(planilhatotal, País == "Brasil")
+#p2 <- subset(planilhatotal, País == "Canadá")
+#p3 <- subset(planilhatotal, País == "Canadá/EUA")
+#p2 <- rbind(p2,p3)
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
 p2 <- subset(p2,Região!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
+```
+Primeiro, vamos ver os gêneros:
+```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   geom_point() +
   geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
+  geom_ysideboxplot(alpha = 0.5,size = 1) +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = Gênero),alpha = 0.5,size = 1, position = "stack") +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
-  facet_grid(rows = vars(Região), scales = "free_x") +
+  #facet_grid(rows = vars(País), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_regi_BR.png",width = 15, height = 8, dpi = 600)
-
+#ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
+```
+Agora vamos ver a contribuição dos estados por região ou estado (como Austrália).
+```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
   geom_point() +
   geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
+  geom_ysideboxplot(alpha = 0.5,size = 1  ) +
   scale_color_tq() +
   scale_fill_tq() +
   theme_tq() +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = Região),alpha = 0.5,size = 1, position = "stack") +
   #facet_grid(rows = vars(Região), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_regi_BR.png",width = 15, height = 8, dpi = 600)
+#ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
+```
 
-### EUA
-p2 <- subset(planilhatotal, País == "EUA")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Região!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+## GIF
+Outra forma de ver seus dados e gerando GIFs, gráficos animados. Vamos seguir o seguinte [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/animated-graph-gif-with-gganimate-ggplot/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16210958981586&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fanimated-graph-gif-with-gganimate-ggplot%2F)
 
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_regi_USA.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_regi_USA.png",width = 15, height = 8, dpi = 600)
-
-### Inglaterra
-p2 <- subset(planilhatotal, País == "Inglaterra")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Região!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_regi_England.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_regi_England.png",width = 15, height = 8, dpi = 600)
-
-### Canada
-p2 <- subset(planilhatotal, País == "Canadá")
-p3 <- subset(planilhatotal, País == "Canadá/USA")
-p2 <- rbind(p2,p3)
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Região!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_gen_regi_Canada.png",width = 15, height = 8, dpi = 600)
-
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
-  geom_point() +
-  geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(
-    alpha    = 0.5,
-    size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  #facet_grid(rows = vars(Região), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
-#ggsave("9.Distr_Ponto_ano_regi_Canada.png",width = 15, height = 8, dpi = 600)
-
-# GIF
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/animated-graph-gif-with-gganimate-ggplot/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16210958981586&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fanimated-graph-gif-with-gganimate-ggplot%2F)
-
-## Pacotes
+Primeiro os pacotes:
+```
 pacman::p_load(gganimat,ggplot2,dplyr,gapminder,ggthemes,gifski,readr,tidyr,cargo, rustc)
 devtools::install_github('thomasp85/gganimate', force = TRUE)
 ### Baxixar cargo antes
 devtools::install_github("r-rust/gifski", force = TRUE)
 #install.packages("gifski", type = "source")
+```
+### Gráfico de pontos
+Vamos selecionar apenas álbuns principais:
+`p2 <- subset(planilhatotal, Classificação == "Principal")`
 
-## Gráfico tipo 1
-##### Gráfico estático - Lançado
-graph1 = planilhatotal %>%
-  ggplot(aes(x=Ranking, y=Pontos, color=Continente, size=Avaliação)) +
-  geom_point(alpha = 0.7, stroke = 0) +
-  theme_fivethirtyeight() +
-  scale_size(range=c(2,12), guide="none") +
-  scale_x_log10() +
-  labs(title = "Pontos e Ranking",
-       x = "Pontos",
-       y = "Ranking",
-       color = "Continente",
-       caption = "Fonte: Planilahtotal") +
-  theme(axis.title = element_text(),
-        text = element_text(family = "Rubik"),
-        legend.text=element_text(size=10)) +
-  scale_color_brewer(palette = "Set2")
-#graph1
-
-##### Animação
-graph1.animation = graph1 +
-  transition_time(Lançado) +
-  labs(subtitle = "Ano: {frame_time}") +
-  shadow_wake(wake_length = 0.1) 
-
-##### Criar animação
-animate(graph1.animation, height = 500, width = 800, fps = 30, duration = 20,
-        end_pause = 60, res = 100, renderer = gifski_renderer()) 
-
-#anim_save("11.aniamtion_ranking.gif") # ou criar em site como https://gifmaker.me/
-#anim_save("out.gif",animation = graph1.animation)
-
-##### Gráfico estático - Ranking
-graph1 = planilhatotal %>%
-  ggplot(aes(x=Lançado, y=Pontos, color=Continente, size=Avaliação)) +
+Dois gráficos podem ser gerados, vamos tentar o primeiro uma animação, mas primeiro o gráfico onde queremos ver a fistribuição de pontos por álbuns dos continentes ao longo dos anos. 
+```
+graph1 = p2 %>%
+  ggplot(aes(x=Lançado, y=Pontos, color=Continente, size=Soma)) +
   geom_point(alpha = 0.7, stroke = 0) +
   theme_fivethirtyeight() +
   scale_size(range=c(2,12), guide="none") +
@@ -514,31 +406,35 @@ graph1 = planilhatotal %>%
         text = element_text(family = "Rubik"),
         legend.text=element_text(size=10)) +
   scale_color_brewer(palette = "Set2")
-#graph1
-
-##### Animação
+```
+Agora vamos adicionar os frames por ano e lançamento:
+```
 graph1.animation = graph1 +
   transition_time(Faixa) +
   labs(subtitle = "Faixa: {frame_time}") +
   shadow_wake(wake_length = 0.1) 
-
-##### Criar animação
+```
+Agora a animação:
+```
 animate(graph1.animation, height = 500, width = 800, fps = 30, duration = 20,
         end_pause = 60, res = 100, renderer = gifski_renderer()) 
-
 #anim_save("11.aniamtion_faixa.gif") # ou criar em site como https://gifmaker.me/
 #anim_save("out.gif",animation = graph1.animation)
+```
+Com essa animação fica evidente que a maioria dos álbuns  melhores avaliados estão entre os anos 70 e 80, mas que o mais bem avalaido está no começo da década de 70 e que é americano, além da abundância de álbuns americanos.
 
-## Gráfico tipo 2
-### Tranforma planilha
-game_sales = planilhatotal %>%
+### Gráfico de pontos
+Agora um gráfico de linhas. Primeiro, precisamos transformar a planilha. 
+```
+game_sales = p2 %>%
   mutate(Lançado = as.numeric(Lançado)) %>%
 #filter(Raiz == 'Latin Music', Gênero %in% c("Samba", "MPB")) %>% 
 #drop_na() %>%
   group_by(Lançado, Continente) %>%
   summarise(Pontos = sum(Pontos), n = n(), .groups = 'drop')
-  
-##### Criar gráfico
+```
+Depois gerar vamos gerar o gráficos:
+```
 graph2<- game_sales %>%
   ggplot(aes(x=Lançado, y=Pontos, color=Continente)) +
   geom_line(size = 2, alpha = 0.75) +
@@ -559,98 +455,59 @@ graph2<- game_sales %>%
   scale_color_brewer(palette = "Pastel1") +
   geom_point() 
 #+ scale_x_continuous(breaks = 0:100)
-
-##### Animação
+```
+Adicionar a esvala temporal:
+```
 graph2.animation<-graph2 +
   transition_reveal(Lançado) +
   view_follow(fixed_y = TRUE)
-
-##### Criar animação
+```
+E fazer a animação:
+```
 animate(graph2.animation, height = 500, width = 800, fps = 30, duration = 10,
         end_pause = 60, res = 100)
 #anim_save("11.aniamtion_acuml.pontos.gif")
+```
+Nesse gráfico fica bem evidente que a américa é a região com mais pontos acumulados.
 
-## Seleção de determinado tipo em colunas
-#[site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/ggplot-the-placing-and-order-of-aesthetics-matters/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16211563531349&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fggplot-the-placing-and-order-of-aesthetics-matters%2F)
+## Gráfico de barras
+Gráfico de barras podem ser simplificadores. Vamos fazer um onde é possível selecionar alguma informação, principalemense que quisermos pensar sobre proporção. Vamos seguir o [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/ggplot-the-placing-and-order-of-aesthetics-matters/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16211563531349&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fggplot-the-placing-and-order-of-aesthetics-matters%2F)
 
-### Tipo
-#### Pacotes
+Primeiro os pacotes:
+```
 pacman::p_load(ggplot2)
 theme_set(theme_bw())
 pacman::p_load(reshape2)
-
-#### Tranforma planilha
+```
+Agora vamos transformar nossa planilha para selecionar o tipo de disco e evidenciar o que for álbum.
+```
 p2 <- reshape2::dcast(planilhatotal, Classificação + Tipo + Gravação ~ Classificação, value.var = "Pontos", fun.aggregate = sum)
 Pontos <- apply(p2[, 4:5], 1, sum)
 p2 <- data.frame (p2, Pontos)
-
-#### Gráfico
+```
+E vamos plotar em gráfico:
+```
 ggplot(p2, aes(Gravação, Pontos, fill = Classificação)) + 
   geom_col(position = "fill", width = 0.85, 
     color = "black", size = 1,
     mapping = aes(linetype = Tipo == "Álbum")) 
 #ggsave("12.Barra_tipo_album.png",width = 14, height = 6, dpi = 300)
+```
+Fica bem fácil ver que em a proporção de álbuns da categria principal é maior para álbuns de estúdio, enquanto para lives a categiria princioal é extras. E que álbum é o tipo de disco mais comum quando olha-se disco de estúdios. Se trocarmos para Show, percena que é a forma principal para Live. 
 
-### País
-#### Brasil
-#### Tranforma planilha
+O mesmo pode ser feito para evidenciar algum país ou gênero dentro de um todo. Vamos selecionar uma planilha com continente, país e raiz de gênero musical.
+```
 p2 <- reshape2::dcast(planilhatotal, Continente + País + Raiz ~ Classificação, value.var = "Pontos", fun.aggregate = sum)
 Pontos <- apply(p2[, 4:5], 1, sum)
 p2 <- data.frame (p2, Pontos)
-
-#### Gráfico
+```
+E vamos plotar em gráfico e pedir para evidenciar o Brasil:
+```
 ggplot(p2, aes(Raiz, Pontos, fill = Continente)) + 
   geom_col(position = "fill", width = 0.85, 
     color = "black", size = 1,
     mapping = aes(linetype = País == "Brasil")) 
 #ggsave("12.Barra_pais_Br.png",width = 14, height = 6, dpi = 300)
-
-
-# Criar Tabela de dados
-
-### Pacotes
-pacman::p_load(tidyverse, tidyverse.quiet, dplyr)
-options(tidyverse.quiet = TRUE)
-library(tidyverse)
-options(dplyr.summarise.inform = FALSE)
-
-#### Continete por Classificação em diferença de média de ano de lançamento
-p2 <- planilhatotal
-p2 %>% 
-  mutate(
-   mean_height = mean(Lançado, na.rm = TRUE)
-  ) %>% 
-  group_by(Continente, Classificação) %>% 
-  summarize(
-    mean_height_species_gender = mean(Lançado, na.rm = TRUE),
-    mean_height = first(mean_height)
-  ) %>% 
-  mutate(
-    diff_mean_height = mean_height_species_gender - mean_height
-  ) %>% 
-  dplyr::select(Classificação, Continente, diff_mean_height) %>%
-  pivot_wider(names_from = 'Classificação', values_from = 'diff_mean_height', values_fill = NA)   
-##### identity() para separar os termos
-
-#### Continente por Raiz em diferença de média de ano de Pontos
-p2 <- planilhatotal
-p2 <- p2 %>% 
-  mutate(
-   mean_height = mean(Pontos, na.rm = TRUE)
-  ) %>% 
-  group_by(Continente, Raiz) %>% 
-  summarize(
-    mean_height_species_gender = mean(Pontos, na.rm = TRUE),
-    mean_height = first(mean_height)
-  ) %>% 
-  mutate(
-    diff_mean_height = mean_height_species_gender - mean_height
-  ) %>% 
-  dplyr::select(Raiz, Continente, diff_mean_height) %>%
-  pivot_wider(names_from = 'Raiz', values_from = 'diff_mean_height', values_fill = NA)   
-p2
-
-plot(p2)
-
-
+```
+Com esse gráfico fica evidente que na música latina o Brasil é o maior contribuidor e que este ritmo é muito associado ao continente americano, por exemplo.
 

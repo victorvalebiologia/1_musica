@@ -1,6 +1,15 @@
-# Início
-Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são análises de correlação.
+# Apresentação
+Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são análises de correlação. Será dividido da seguinte forma:
+- Início;
+- Teste de Normalidade;
+- Análise de Variância (one-way, wilcox, two-way);
+- Regressão linear (simples, polinominal);
+- Comparação de médias;
+- Cluster;
+- Correlação;
+- Cálculos.
 
+## Início
 Primeiro, vamos indicar as pastas corretas.
 ```
 getwd()
@@ -38,7 +47,7 @@ ts.plot(planilhatotal$Lançado)
 boxplot(planilhatotal$Pontos)
 ```
 
-# Testes de Normalidade
+## Testes de Normalidade
 Primeiro o pacote para isso.
 
 `pacman::p_load(fitdistrplus)` 
@@ -57,7 +66,7 @@ Fica bem clato a média em 7,5 e que elas estão bem próximos da distribuição
 fit.MF.normal <- fitdist(planilhatotal$Lançado, "norm") #gráfico de distribuição normal
 plot(fit.MF.normal)
 ```
-# Análise de Variância
+## Análise de Variância
 Primeiro vamos instalar o pacote.
 `pacman::p_load(tidyverse, FSA, emmeans)`
 
@@ -103,9 +112,7 @@ ggplot(data=sumdata,mapping=aes(x=Continente)) +
   geom_point(aes(y=mn)) +
   theme_classic()
 ```
-
-
-## Outra análises de correlação
+### Outra análises de correlação
 O pacote Expdes `pacman::p_load(ExpDes)` possui um conjunto de teste de significância CRD que calcula vários testes:
 - A variância (Analysis of Variance Table), onde h0 corresponde a não possuir variância;
 - Teste de normalidad de Shapiro-Wilk, onde h0 significa dados normal;
@@ -152,7 +159,7 @@ res
 ``` 
 A hipótese nula é que eles são iguais e isso foi confirmado, já que o p não foi menor que 0,05. Ou seja, apesar da pequena diferença eles podem ser considerados iguais.
 
-## Two-Way Anova
+### Two-Way Anova
 Quando são duas variáveis a serem comparadas. Para	conhecer	os	efeitos	isolados	de	cada	um	dos	factores	testam-se	as	
 hipóteses:	
 Para	o	factor	A:	
@@ -251,7 +258,7 @@ ggplot(planilhatotal,aes(x=Pontos,y=Binário,color=Continente,fill=Continente)) 
   theme_classic()
 ``` 
 
-## Regressão polinomial
+### Regressão polinomial
 Em casos que a regressão não é uma reta pode-se fazer um modelo de regressão para duas variáveis, sendo uma dependente e uma independente. A variável independente é expandida num polinômio com geração de novas variáveis. No nosso caso foi o ano de lançamento.
 ```  
 poly2 <- lm(Pontos~Lançado+I(Lançado^2),data=planilhatotal)
@@ -271,7 +278,7 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
   geom_point() +
   theme_classic()
 ``` 
-## Gráficos
+### Gráficos
 Um exemplo de gráfico mais elaborado que mede a regressão linear de pontos por ano de lançamento por continente. 
 ``` 
 ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
@@ -328,7 +335,7 @@ ggplot(planilhatotal, aes(x=Correção , y = Base, colour = Classificação)) +
 #ggsave("1.Point_Base_Corre.png",width = 10, height = 6, dpi = 300)
 ``` 
 
-# Comparação de médias
+## Comparação de médias
 Visto as anãlises de normalidade, variância e regressão, passamos para comparações de médias. Primeiro os pacotes:
 ``` 
 pacman::p_load(jtools, sandwich, lme4, ggstance, vegan, rpart) 
@@ -436,5 +443,55 @@ chart.Correlation(cor, histogram=TRUE, pch="+")
 ``` 
 Músicas americanas são bastantes correlacionadas, como esperado.
 
+## Cálculos
+Também existe uma forma de calcular a diferença de valores dentro da tabela de dados, no caso, a diferença da média de pontos em diferentes categorias, primeiro por tipo de álbuns e segundo por raiz musical. Vamo seguir o seguinte [site](https://www.r-bloggers.com/2021/06/simple-tricks-for-debugging-pipes-within-magrittr-base-r-or-ggplot2/)
+Primeiro os pacotes.
+``` 
+pacman::p_load(tidyverse, tidyverse.quiet, dplyr)
+options(tidyverse.quiet = TRUE)
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+``` 
+Agora, vamos construir uma tabela com essa diferença entre os tipos de álbum por continente.
+``` 
+p2 <- planilhatotal
+p2 %>% 
+  mutate(mean_height = mean(Lançado, na.rm = TRUE)) %>% 
+  group_by(Continente, Classificação) %>% 
+  summarize(mean_height_species_gender = mean(Lançado, na.rm = TRUE),
+    mean_height = first(mean_height)) %>% 
+  mutate(diff_mean_height = mean_height_species_gender - mean_height) %>% 
+  dplyr::select(Classificação, Continente, diff_mean_height) %>%
+  pivot_wider(names_from = 'Classificação', values_from = 'diff_mean_height', values_fill = NA)   
+##### identity() para separar os termos
+``` 
+Nessa tabela percebemos que existe diferença entre álbum principal e extra em todos os continentes, principalmente aqueles bem amostrados. Para América, por exemplo, a média de álbuns extra e menor que a média geral, já para principal é ligeiramente maior.
 
+Vamos ver agora considerando os continentes e a raiz musical. 
+``` 
+p2 <- planilhatotal
+p3 <- p2 %>% 
+  mutate(mean_height = mean(Pontos, na.rm = TRUE)) %>% 
+  group_by(Continente, Raiz) %>% 
+  summarize(mean_height_species_gender = mean(Pontos, na.rm = TRUE),
+    mean_height = first(mean_height)) %>% 
+  mutate(diff_mean_height = mean_height_species_gender - mean_height) %>% 
+  dplyr::select(Raiz, Continente, diff_mean_height) %>%
+  pivot_wider(names_from = 'Raiz', values_from = 'diff_mean_height', values_fill = NA)   
+p3
+``` 
+O mesmo se dá com música anglo-ameriana, onde para quase todos os continentes apresentam a média de pontos maior. Já musica européia apenas na Ásia a sua média de pontos é maior que o restante (este principalmente composto por música anglo-americana).
 
+Vamos ver no gráfico de correlação usado anteriormente:
+``` 
+ggcorrm(data = p3) +
+  lotri(geom_point(alpha = 0.5)) +
+  lotri(geom_smooth()) +
+  utri_heatmap() +
+  utri_corrtext() +
+  dia_names(y_pos = 0.15, size = 3) +
+  dia_histogram(lower = 0.3, fill = "grey80", color = 1) +
+  scale_fill_corr() +
+  labs(title = "Correlação Raiz Musical")
+``` 
+Nesse gráfico fica mais fácil perceber que apesar das diferenças de média de pontos, música anglo-americana está mais próximo de música altina e europeis do que música afro-americana.
