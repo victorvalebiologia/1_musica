@@ -22,7 +22,6 @@ if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de f
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
 pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-
 ```
 Agora vamos adicionar a planilha.
 ```
@@ -43,6 +42,7 @@ planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
 Agora testaremos antes de começar as análises com alguns gráficos simples
 ```
 ts.plot(planilhatotal$Lançado)
+
 boxplot(planilhatotal$Pontos)
 ```
 
@@ -284,7 +284,7 @@ Outra forma de ver o dado e diminuindo a escala e vendo cada região. As princip
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, Subcontinente == "A. Anglo-Saxônica")
+p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
@@ -332,7 +332,7 @@ Também podemos ver em uma escala de país. Os principais serão listadas abaixo
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, País == "Brasil")
+p2 <- subset(planilhatotal, País == "Chile")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
 #p2 <- rbind(p2,p3)
@@ -374,6 +374,56 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
 #ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
 ```
 
+### Escala 4
+Também podemos ver em uma escala de Gênero. Os principais serão listadas abaixo:
+- Raíz;
+- Gênero;
+- Categoria;
+- Subgênero.
+
+Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
+```
+p2 <- subset(planilhatotal, Gênero == "Rock")
+#p2 <- subset(planilhatotal, País == "Canadá")
+#p3 <- subset(planilhatotal, País == "Canadá/EUA")
+#p2 <- rbind(p2,p3)
+p2 <- subset(p2,Continente!="Vários") 
+p2 <- subset(p2,Subcontinente!="Vários") 
+p2 <- subset(p2,Região!="Vários") 
+p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
+p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
+p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+```
+Primeiro, vamos ver os gêneros:
+```
+p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
+  geom_point() +
+  geom_smooth(aes(color = NULL)) +
+  geom_ysideboxplot(alpha = 0.5,size = 1) +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = País),alpha = 0.5,size = 1, position = "stack") +
+  scale_color_tq() +
+  scale_fill_tq() +
+  theme_tq() +
+  #facet_grid(rows = vars(País), scales = "free_x") +
+  labs(title = "Distibuição dos pontos por gênero e países")
+#ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
+```
+Agora vamos ver a contribuição dos estados por região ou estado (como Austrália).
+```
+p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Categoria)) +
+  geom_point() +
+  geom_smooth(aes(color = NULL)) +
+  geom_ysideboxplot(alpha = 0.5,size = 1  ) +
+  scale_color_tq() +
+  scale_fill_tq() +
+  theme_tq() +
+  geom_xsidedensity(aes(y = after_stat(count),
+      color = Categoria),alpha = 0.5,size = 1, position = "stack") +
+  #facet_grid(rows = vars(Categoria), scales = "free_x") +
+  labs(title = "Distibuição dos pontos por gênero e categoria")
+#ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
+```
 ## GIF
 Outra forma de ver seus dados e gerando GIFs, gráficos animados. Vamos seguir o seguinte [site](https://www-r--bloggers-com.cdn.ampproject.org/v/s/www.r-bloggers.com/2021/05/animated-graph-gif-with-gganimate-ggplot/amp/?amp_gsa=1&amp_js_v=a6&usqp=mq331AQFKAGwASA%3D#amp_tf=De%20%251%24s&aoh=16210958981586&csi=0&referrer=https%3A%2F%2Fwww.google.com&ampshare=https%3A%2F%2Fwww.r-bloggers.com%2F2021%2F05%2Fanimated-graph-gif-with-gganimate-ggplot%2F)
 
