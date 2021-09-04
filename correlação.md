@@ -66,6 +66,16 @@ Fica bem clato a média em 7,5 e que elas estão bem próximos da distribuição
 fit.MF.normal <- fitdist(planilhatotal$Lançado, "norm") #gráfico de distribuição normal
 plot(fit.MF.normal)
 ```
+Podemos isolar o gráfico Q-Q Plot. Basicamente, um gráfico Q-Q é um gráfico de dispersão criado com a ajuda do uso de unidades de quantis em relação um ao outro. Se cada unidade de quantis veio de uma distribuição idêntica, temos que ver os fatores formando uma linha que é mais ou menos reta. Também e adicionar variáveis: 
+```
+ggplot(planilhatotal, aes(sample=Pontos, colour = Raiz)) +
+     stat_qq() + 
+     theme_bw()
+```
+Para garantir é fazendo um teste de Shapiro Wilk. Se p não for significativo a variável é normal. 
+`shapiro.test(planilhatotal$Pontos)`
+Nesse caso fica claro que a variável não é normal.
+
 ## Análise de Variância
 Primeiro vamos instalar o pacote.
 `pacman::p_load(tidyverse, FSA, emmeans)`

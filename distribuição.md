@@ -116,14 +116,14 @@ Agora vamos ver como os países explicam os gêneros. Quais países apresentam o
 ```
 local<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero~ Gênero, value.var = "Pontos", fun.aggregate = sum)
+grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 grupo2<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 ```
 Agora vamos verm em gráfico:
 ```
 wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         groups = grupo$Raiz, 
+         #groups = grupo$Raiz, 
          ellipse = TRUE, circle = TRUE) +
   geom_label_repel(aes(label = grupo2$País), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
@@ -134,7 +134,7 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
   theme_classic()
 #ggsave("5.PCA_pais_gen.png",width = 15, height = 8, dpi = 600)
 ```
-Percebe-se que dois países possuem o maior poder de explicação para os gêneros. Primeiro o EUA, com mais de 45%, que explica a presença de rock, R&B  ejazz, por exemplo. Já com 25% o Brasil que esplicaria o samba e a música brasileira. 
+Percebe-se que dois países possuem o maior poder de explicação para os gêneros. Primeiro o EUA, com mais de 45%, que explica a presença de rock, R&B  ejazz, por exemplo. Já com 25% o Brasil que explicaria o samba e a música brasileira. 
 
 Um gráfico resumido e o sumário podem ser visto também. 
 ```
@@ -164,6 +164,7 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
 #ggsave("5.PCA_gen_subcont.png",width = 15, height = 8, dpi = 600)
 ```
 Com cerca de 50% o rock explicaria quase todos os subcontinentes, exceto para o caribe. E a diferença entre eles seria pela proporção d e Rock e Pop, com 15%, onde quanto maios presença de música pop melhor expliacria regiões da Europa e a ausência do pop expliacria melhor as Américas e Ilhas Britânicas. Fica claro que a maior porporção de rock e de pop são a chave para entender o gráfico.
+
 
 ## Distribuição de série temporal
 Outra forma de enteder nossos dados é por uma série temporal. Vamos ver quais gêneros tipos de registros foram mais comuns com o passar dos anos. Primeiro o pacote.
