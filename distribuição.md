@@ -333,7 +333,7 @@ Também podemos ver em uma escala de país. Os principais serão listadas abaixo
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, País == "Chile")
+p2 <- subset(planilhatotal, País == "Brasil")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
 #p2 <- rbind(p2,p3)

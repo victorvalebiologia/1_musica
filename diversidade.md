@@ -19,7 +19,6 @@ if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de f
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
 pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-
 ```
 Agora vamos adicionar a planilha.
 ```
@@ -172,14 +171,14 @@ Primeiro vamos selecionar a tabela, podemos filtrá-la se necessário:
 p2 <- planilhatotal
 #p2 <- subset(planilhatotal,Artista!="Various Artist") 
 #p2 <- subset(p2,Classificação!="Extra") #tirar single
-#p2 <- subset(p2, Continente == "América")
-p2 <- subset(p2, País == "Austrália")
+p2 <- subset(p2, Continente == "Europa")
+#p2 <- subset(p2, País == "Austrália")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
 #p2 <- rbind(p2,p3)
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Região ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -207,10 +206,10 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Região ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 4)
+  subset(S > 10)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -224,9 +223,9 @@ Outra coisa, prestar atenção nas legendas, então verificar:
 
 ```
 ggplot(local, aes(x = S, y = H)) + 
-  geom_point(aes(size=abund, colour = Estado), alpha = 0.65)+ #size=abund
+  geom_point(aes(size=abund, colour = Região), alpha = 0.65)+ #size=abund
   scale_size(range = c(.1, 18), name = "Pontos") +
-  geom_label_repel(aes(label = Estado), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = Região), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
