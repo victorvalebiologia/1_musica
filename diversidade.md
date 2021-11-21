@@ -169,16 +169,23 @@ Para as seguintes variáveis:
 Primeiro vamos selecionar a tabela, podemos filtrá-la se necessário:
 ```
 p2 <- planilhatotal
-#p2 <- subset(planilhatotal,Artista!="Various Artist") 
-#p2 <- subset(p2,Classificação!="Extra") #tirar single
-p2 <- subset(p2, Continente == "Europa")
-#p2 <- subset(p2, País == "Austrália")
-#p3 <- subset(planilhatotal, País == "Canadá/EUA")
-#p2 <- rbind(p2,p3)
+
+p2 <- subset(p2,Classificação!="Extra") 
+p2 <- subset(p2,Coletivo!="Vários")
+p2 <- subset(p2, Continente == "América")
+
+p2 <- subset(p2, !is.na(Estado))
+
+p2 <- subset(planilhatotal,Artista!="Various Artist") 
+p2 <- subset(p2, Subcontinente == "A. Latina")
+p2 <- subset(p2, País == "Austrália")
+p3 <- subset(planilhatotal, País == "Canadá/EUA")
+p2 <- rbind(p2,p3)
+
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Região ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -190,26 +197,20 @@ Agora vamos ver os índices de diversidade. São eles:
 - Inverso de Simpson.
 ```
 abund<-rowSums(local) #abunância por faixa
-abund
 S <- specnumber(local) ## rowSums(BCI > 0) does the same...
-S
 H <- diversity(local)
-H #shannon
 J <- H/log(S)
-J
 simp <- diversity(local, "simpson")
-simp #simpson
 invsimp <- diversity(local, "inv")
-invsimp 
 ```
 Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro vamos retomar a planilha. Algumas detalhes devem ser verficados:
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Região ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 10)
+  subset(S > 15)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -222,10 +223,23 @@ Outra coisa, prestar atenção nas legendas, então verificar:
 - se a legenda de cor está certa (deve ser a segunda variável da tabela)
 
 ```
+ggplot(local, aes(x = reorder(Estado, S), y = S)) + 
+  geom_col(aes(weight = S, fill = País), alpha = 0.7) + 
+  geom_point(aes(y = S, x = Estado, size = abund, colour = País)) +
+  geom_text(aes(y = S, x = Estado, label = S), size=4, alpha= 1) +
+  #labs(title="Ranking de importância", subtitle="", y="Número de álbum >20", x="Estado0", caption="Dados primários",fill = "País", size = "Número de pontos") +
+  scale_size(range = c(.1, 18)) +
+  #scale_fill_continuous(type = "viridis") +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) + 
+        coord_flip() + theme_classic() 
+```
+Outro gráfico:
+```
 ggplot(local, aes(x = S, y = H)) + 
-  geom_point(aes(size=abund, colour = Região), alpha = 0.65)+ #size=abund
+  geom_point(aes(size=abund, colour = Estado), alpha = 0.65)+ #size=abund
   scale_size(range = c(.1, 18), name = "Pontos") +
-  geom_label_repel(aes(label = Região), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = Estado), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
@@ -233,6 +247,6 @@ ggplot(local, aes(x = S, y = H)) +
   #labs(title="Número de artidtas por país > 20", subtitle="", y="Diversidade de artistas",x="Número de álbuns", caption="",
        #color = "Principais países", size = "Número de artistas") +
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
-  theme_classic()
+  theme_classic() 
 #ggsave("3.Pais_artist.png",width = 15, height = 8, dpi = 600)
 ```
