@@ -114,57 +114,39 @@ library("ggbiplot")
 Agora vamos ver como os países explicam os gêneros. Quais países apresentam o maior poder de explicação para os gêneros catalogados. Primeiro vamos separar as tabelas.
 
 ```
-local<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
+p2 <- planilhatotal
+p2 <- subset(p2, !is.na(Gênero))
+p2 <- subset(p2,Classificação!="Extra") 
+p2 <- subset(p2,Coletivo!="Vários")
+
+local<-reshape2::dcast(p2, Subcontinente ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
-grupo2<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
+grupo<-reshape2::dcast(p2, Subcontinente + Continente ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
+grupo2<-reshape2::dcast(p2, Subcontinente ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 ```
 Agora vamos verm em gráfico:
 ```
 wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         #groups = grupo$Raiz, 
+         groups = grupo$Continente, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo2$País), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = grupo2$Subcontinente), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
-                   segment.color = 'grey50') +
+                   segment.color = 'grey50',
+                   max.overlaps = 10) +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
 #ggsave("5.PCA_pais_gen.png",width = 15, height = 8, dpi = 600)
 ```
-Percebe-se que dois países possuem o maior poder de explicação para os gêneros. Primeiro o EUA, com mais de 45%, que explica a presença de rock, R&B  ejazz, por exemplo. Já com 25% o Brasil que explicaria o samba e a música brasileira. 
+Com cerca de 50% o rock explicaria quase todos os subcontinentes, exceto para o caribe. E a diferença entre eles seria pela proporção d e Rock e Pop, com 15%, onde quanto maios presença de música pop melhor expliacria regiões da Europa e a ausência do pop expliacria melhor as Américas e Ilhas Britânicas. Fica claro que a maior porporção de rock e de pop são a chave para entender o gráfico.
 
 Um gráfico resumido e o sumário podem ser visto também. 
 ```
 summary(prcomp(local, scale = TRUE))
 biplot(prcomp(local, scale = TRUE))
 ```
-Um outro exemplo seria quais subcontinentes apresentariam quais gêneros mais catalogados. Vamos selecionar a tabela primeiro.
-```
-local<-reshape2::dcast(planilhatotal, Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-grupo<-reshape2::dcast(planilhatotal, Raiz + Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
-grupo2<-reshape2::dcast(planilhatotal, Gênero ~ Subcontinente, value.var = "Pontos", fun.aggregate = sum)
-```
-E agora o gráfico:
-```
-wine.pca <- prcomp(local, scale. = TRUE)
-ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         groups = grupo$Raiz, 
-         ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo2$Gênero), size=4, alpha= 1, #funciona no zoom
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  scale_color_discrete(name = '') +
-  theme(legend.direction = 'horizontal', legend.position = 'top') +
-  theme_classic()
-#ggsave("5.PCA_gen_subcont.png",width = 15, height = 8, dpi = 600)
-```
-Com cerca de 50% o rock explicaria quase todos os subcontinentes, exceto para o caribe. E a diferença entre eles seria pela proporção d e Rock e Pop, com 15%, onde quanto maios presença de música pop melhor expliacria regiões da Europa e a ausência do pop expliacria melhor as Américas e Ilhas Britânicas. Fica claro que a maior porporção de rock e de pop são a chave para entender o gráfico.
-
 
 ## Distribuição de série temporal
 Outra forma de enteder nossos dados é por uma série temporal. Vamos ver quais gêneros tipos de registros foram mais comuns com o passar dos anos. Primeiro o pacote.
@@ -222,7 +204,7 @@ p2 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Subcontinente)
 ```
 Assim, vê que a. Anglo-saxônica, Latina e Ilhas Britânicas são os grandes contribuidores destes pontos. O mesmo pode ser visto em raiz e gênero musical tendo rock como grande força. 
 
-Dados cruuzados também podem ser facilitados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
+Dados cruzados também podem ser facilitados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
 ```
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
@@ -285,9 +267,10 @@ Outra forma de ver o dado e diminuindo a escala e vendo cada região. As princip
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
+p2 <- subset(planilhatotal, Subcontinente == "A. Latina")
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
+p2 <- subset(p2,País!="Brasil")
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies

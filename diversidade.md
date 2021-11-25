@@ -121,7 +121,8 @@ Vamos ver a riqueza de dados ao passar dos anos. Essa riqueza pode ser de:
 
 Primeiro vamos separar a tabela.
 ```
-local<-reshape2::dcast(planilhatotal, Lançado ~ Álbum) 
+p2 <- planilhatotal
+local<-reshape2::dcast(p2, Lançado ~ Álbum) 
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver alguns índices simples, como abundância e riqueza:
@@ -131,20 +132,15 @@ S <- specnumber(local)
 ```
 E vamos plotar em gráfico:
 ```
-local<-reshape2::dcast(planilhatotal, Lançado ~ Artista)
+local<-reshape2::dcast(p2, Lançado ~ Artista)
+
 local<-data.frame(S,abund,local)
-ggplot(local, aes(x = Lançado, y = S)) + 
+p3 <- ggplot(local, aes(x = Lançado, y = S)) + 
   geom_point(aes(size=abund, colour = S), alpha = 0.4) + 
-  geom_line() +
+  geom_line(aes(colour=S)) +
   scale_size(range = c(.1, 18), name = "Número de álbuns") +
-  geom_label_repel(aes(label = Lançado), size=4, alpha= 1, 
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  labs(title="Número de álbuns por ano", subtitle="", 
-       y="Ano de lançamento",x="Número de álbuns", caption="",
-       color = "Número de artistas",
-       size = "") +
+  geom_label_repel(aes(label = Lançado), size=4, alpha= 1,box.padding   = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title="Número de álbuns por ano", subtitle="",y="Número de álbuns",x="Ano de lançamento", caption="",color = "Número de artistas",size = "") +
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
   theme_classic()
 #ggsave("2.Ano_count.png",width = 15, height = 8, dpi = 600)
@@ -186,7 +182,7 @@ p2 <- rbind(p3,p4)
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Categoria ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -208,7 +204,7 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Categoria + Gênero ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
   subset(S > 20)
@@ -224,10 +220,10 @@ Outra coisa, prestar atenção nas legendas, então verificar:
 - se a legenda de cor está certa (deve ser a segunda variável da tabela)
 
 ```
-ggplot(local, aes(x = reorder(Categoria, S), y = S)) + 
-  geom_col(aes(weight = S, fill = Gênero), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Categoria, size = abund, colour = Gênero)) +
-  geom_text(aes(y = S, x = Categoria, label = S), size=4, alpha= 1) +
+ggplot(local, aes(x = reorder(Estado, S), y = S)) + 
+  geom_col(aes(weight = S, fill = País), alpha = 0.7) + 
+  geom_point(aes(y = S, x = Estado, size = abund, colour = País)) +
+  geom_text(aes(y = S, x = Estado, label = S), size=4, alpha= 1) +
   #labs(title="Ranking de importância", subtitle="", y="Número de álbum >20", x="Região", caption="Dados primários",fill = "País", size = "Número de pontos") +
   scale_size(range = c(.1, 18)) +
   #scale_fill_continuous(type = "viridis") +
@@ -239,7 +235,7 @@ ggplot(local, aes(x = reorder(Categoria, S), y = S)) +
 Outro gráfico:
 ```
 ggplot(local, aes(x = S, y = H)) + 
-  geom_point(aes(size=abund, colour = Estado), alpha = 0.65)+ #size=abund
+  geom_point(aes(size=abund, colour = País), alpha = 0.65)+ #size=abund
   scale_size(range = c(.1, 18), name = "Pontos") +
   geom_label_repel(aes(label = Estado), size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
