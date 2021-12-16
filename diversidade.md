@@ -17,7 +17,7 @@ Agora baixar e ler alguns pacotes básicos.
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
+pacman::p_load(ggplot2, devtools, ggrepel, graphics,lubridate) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 ```
 Agora vamos adicionar a planilha.
@@ -42,11 +42,26 @@ ts.plot(planilhatotal$Lançado)
 boxplot(planilhatotal$Pontos)
 ```
 ## Acumulação
+Primeiro a data:
+
+```
+p2 <- planilhatotal
+
+p2 <- subset(p2, !is.na(Lançado))
+p2 <- subset(p2, !is.na(Mês))
+p2 <- subset(p2, !is.na(Dia))
+
+p3 <- p2 %>% 
+  select(Lançado,Mês,Dia) %>% 
+  mutate(Data = make_date(Lançado,Mês,Dia))
+Data <- data.frame(p3,p2)
+```
 Vamos começar com uma análise de acumualção de dados. Podemos investigar a acumulação de:
 - Álbuns;
 - Discos;
 - Língua (Idiomas).
 ```
+p2 <- planilhatotal
 acum<-reshape2::dcast(planilhatotal, Lançado ~ Álbum)
 acum=data.frame(acum, row.names=1)
 spAbund<-rowSums(acum) 
@@ -114,6 +129,38 @@ ggplot(a, aes(x = Lançado, y = sp4.richness)) +
         axis.text = element_text(size = 14)) + theme_classic() 
 #ggsave("2.Acumul_álbum_count.png",width = 14, height = 6, dpi = 300)
 ```
+Com o data considerando mês e dias a partir da variável formada: Data:
+```
+acum<-reshape2::dcast(Data, Data ~ Álbum, value.var = "Tocado")
+acum=data.frame(acum, row.names=1)
+acum[is.na(acum)] <- 0
+spAbund<-rowSums(acum) 
+```
+Agora vamos ver isso em um gráfico simples de acumulação.
+```
+sp4<-specaccum(acum,method="collector")
+spAbund<-rowSums(acum)
+
+acum<-reshape2::dcast(Data, Data ~ Álbum, value.var = "Pontos", fun = length)
+p3<-data.frame(spAbund,sp4$sites,sp4$richness,acum)
+
+ggplot(p3, aes(x = Data, y = sp4.richness)) + 
+  geom_line(size=6, alpha=0.6, color="Gray") + #geom_line(aes(group = sp4.sites))
+  geom_point(aes(size=spAbund, colour=sp4.richness), alpha=0.3) +
+    geom_label_repel(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
+  scale_size(range = c(.1, 24), name="Abundância de registros") +
+  #geom_text(aes(label = a$sp4.richness),col = 'black',size = 5) +
+  labs(title="Curva do coletor", subtitle="Total", y="Riqueza",x="Data", caption="",
+       color = "Riqueza", size = "Abundância de registros") +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) + theme_classic() 
+#ggsave("2.Acumul_álbum_count.png",width = 14, height = 6, dpi = 300)
+```
+
+
 ## Série Temporal
 Vamos ver a riqueza de dados ao passar dos anos. Essa riqueza pode ser de:
 - Álbuns;
@@ -162,23 +209,22 @@ Para as seguintes variáveis:
 - Artistas;
 - País.
 
-Primeiro vamos selecionar a tabela, podemos filtrá-la se necessário:
+Agora vamos selecionar a tabela, podemos filtrá-la se necessário:
 ```
 p2 <- planilhatotal
 
 p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2,Coletivo!="Vários")
 
-p2 <- subset(p2, !is.na(Estado))
-
 p2 <- subset(p2, País == "Brasil")
-
 p2 <- subset(planilhatotal,Artista!="Various Artist") 
-p2 <- subset(p2, Subcontinente == "A. Latina")
+p2 <- subset(p2, Continente == "Europa")
+p2 <- subset(p2, Subcontinente == "E. Meridional")
 p3 <- subset(p2, Continente == "Oceania")
 p4 <- subset(p2, Continente == "Ásia")
 p2 <- rbind(p3,p4)
 
+p2 <- subset(p2, !is.na(Estado))
 ```
 Agora a tabela a ser analisada:
 ```
@@ -207,7 +253,7 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 20)
+  subset(S > 5)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;

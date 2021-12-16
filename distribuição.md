@@ -267,7 +267,7 @@ Outra forma de ver o dado e diminuindo a escala e vendo cada região. As princip
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, Subcontinente == "A. Latina")
+p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
 p2 <- subset(p2,País!="Brasil")
@@ -316,7 +316,7 @@ Também podemos ver em uma escala de país. Os principais serão listadas abaixo
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, País == "Brasil")
+p2 <- subset(planilhatotal, País == "Suécia")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
 #p2 <- rbind(p2,p3)
@@ -367,7 +367,7 @@ Também podemos ver em uma escala de Gênero. Os principais serão listadas abai
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
-p2 <- subset(planilhatotal, Gênero == "Rock")
+p2 <- subset(planilhatotal, Gênero == "Hip Hop")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
 #p2 <- rbind(p2,p3)
