@@ -1,5 +1,5 @@
 # Apresentação
-Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são gráficos de distribuição das variávesi. Será dividido da seguinte forma:
+Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito são gráficos de distribuição das variáveis. Será dividido da seguinte forma:
 - Início;
 - Gráficos investigatórios;
 - PCA;
@@ -50,7 +50,12 @@ boxplot(planilhatotal$Pontos)
 Fazer gráficos pode ser uma ótima forma de entender o conjunto de dados que temos em mãos. Por exemplo, quais são os gêneros mais comuns que eu registrei? Vamos ver um boxplot deles.
 
 ```
-ggplot(planilhatotal, aes(x = Pontos, y = Gênero)) + 
+p2 <- planilhatotal
+p2 <- subset(p2,Classificação!="Extra")
+p2 <- subset(p2,Classificação!="Outros") 
+p2 <- subset(p2,Coletivo!="Vários")
+
+ggplot(p2, aes(x = Pontos, y = Gênero)) + 
   geom_boxplot(aes(colour= Raiz)) +
   #geom_violin(aes(colour= Raiz)) +
   #facet_grid(Gravação~.) +
@@ -176,7 +181,12 @@ Primeiro o pacote.
 ### Escala 1
 Agora vamos ver quais continentes são mais presentes em uma escala temporal(eixo x) e na média de pontos (eixo y).
 ```
-p2<-planilhatotal %>%
+p2 <- planilhatotal
+p2 <- subset(p2,Classificação!="Extra")
+p2 <- subset(p2,Classificação!="Outros") 
+p2 <- subset(p2,Coletivo!="Vários")
+
+p3<-p2 %>%
   ggplot(aes(Lançado, Pontos, color = Continente)) +
   geom_point(size = 2, alpha = 0.3) +
   geom_smooth(aes(color = NULL), se=TRUE) +
@@ -189,15 +199,15 @@ p2<-planilhatotal %>%
   theme_tq() +
   labs(title = "Distribuição dos pontos por gênero", subtitle = "Densidade",
        x = "Ano", y = "Pontos") +  theme(ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
-plot(p2)
+plot(p3)
 #ggsave("9.Distr_Ponto_ano_Cont.png",width = 15, height = 8, dpi = 600)
-#p2 + ggside(x.pos = "bottom", y.pos = "left") + labs(title = "Distribuição dos pontos dos continentes por ano", subtitle = " ")
+#p3 + ggside(x.pos = "bottom", y.pos = "left") + labs(title = "Distribuição dos pontos dos continentes por ano", subtitle = " ")
 ```
 Fica claro que a América é a região com maios proporção, seguido da Europa. O mesmo pode ser feito com a raiz de gênero musical que mostra que a música anglo-americana é a mais comum, seguida por música latina nos registros mais antigos e música afro-americana mais recentemente.Ou com tipo, quase todo por álbuns.
 
 Agora, vamos ver como ver os subtipos, como de subcontinente, por exemplo.
 ```
-p2 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Subcontinente)
+p3 + facet_wrap(Subcontinente~.) + #facet_wrap(Continente~Subcontinente)
   labs(title = "Pontos para raiz musical", subtitle = "Distribuição por gêneros") +
   ggside(collapse = "x")
 #ggsave("9.Distr_Ponto_ano_Subcont.png",width = 18, height = 8, dpi = 600)
@@ -206,6 +216,7 @@ Assim, vê que a. Anglo-saxônica, Latina e Ilhas Britânicas são os grandes co
 
 Dados cruzados também podem ser facilitados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
 ```
+p2 <- planilhatotal
 p2 <- subset(planilhatotal,Continente!="Vários") 
 p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
 p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
@@ -226,6 +237,7 @@ p2 <- p2 %>%
   theme_tq() +
   labs(title = "Distribuição dos pontos por gênero" , subtitle = "Densidade",
        x = "Ano", y = "Pontos") +  theme( ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
+
 p2 + facet_grid(Continente~Raiz, space = "free", scales = "free") +
   labs(title = "Relação continente raiz musical", subtitle = "") +
   ggside(collapse = "all")
@@ -235,7 +247,11 @@ Assim vemos que na América músicas de raizes americanas são maioria e que na 
 
 Outra forma de ver nossos dados são temporalmente vendo quas raízes musicais são distribuídos por continente.
 ```
-p2 <- subset(planilhatotal,Continente!="Vários") 
+p2 <- planilhatotal
+p2 <- subset(p2,Classificação!="Extra")
+p2 <- subset(p2,Classificação!="Outros") 
+p2 <- subset(p2,Coletivo!="Vários")
+
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
   geom_point() +
   geom_smooth(aes(color = NULL)) +
@@ -267,6 +283,7 @@ Outra forma de ver o dado e diminuindo a escala e vendo cada região. As princip
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
+p2 <- planilhatotal
 p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
 p2 <- subset(p2,Continente!="Vários") 
 p2 <- subset(p2,Subcontinente!="Vários") 
@@ -316,6 +333,7 @@ Também podemos ver em uma escala de país. Os principais serão listadas abaixo
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
+p2 <- planilhatotal
 p2 <- subset(planilhatotal, País == "Suécia")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")
@@ -367,6 +385,7 @@ Também podemos ver em uma escala de Gênero. Os principais serão listadas abai
 
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
+p2 <- planilhatotal
 p2 <- subset(planilhatotal, Gênero == "Hip Hop")
 #p2 <- subset(planilhatotal, País == "Canadá")
 #p3 <- subset(planilhatotal, País == "Canadá/EUA")

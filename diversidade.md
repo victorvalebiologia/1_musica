@@ -212,7 +212,6 @@ Para as seguintes variáveis:
 Agora vamos selecionar a tabela, podemos filtrá-la se necessário:
 ```
 p2 <- planilhatotal
-
 p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2,Coletivo!="Vários")
 
@@ -224,11 +223,11 @@ p3 <- subset(p2, Continente == "Oceania")
 p4 <- subset(p2, Continente == "Ásia")
 p2 <- rbind(p3,p4)
 
-p2 <- subset(p2, !is.na(Estado))
+p2 <- subset(p2, !is.na(Gênero))
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Gênero ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -250,10 +249,10 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Gênero + Raiz ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 5)
+  subset(S > 20)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -266,17 +265,17 @@ Outra coisa, prestar atenção nas legendas, então verificar:
 - se a legenda de cor está certa (deve ser a segunda variável da tabela)
 
 ```
-ggplot(local, aes(x = reorder(Estado, S), y = S)) + 
-  geom_col(aes(weight = S, fill = País), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Estado, size = abund, colour = País)) +
-  geom_text(aes(y = S, x = Estado, label = S), size=4, alpha= 1) +
-  #labs(title="Ranking de importância", subtitle="", y="Número de álbum >20", x="Região", caption="Dados primários",fill = "País", size = "Número de pontos") +
+ggplot(local, aes(x = reorder(Gênero, S), y = S)) + 
+  geom_col(aes(weight = S, fill = Raiz), alpha = 0.7) + 
+  geom_point(aes(y = S, x = Gênero, size = abund, colour = Raiz)) +
+  geom_text(aes(y = S, x = Gênero, label = S), size=4, alpha= 1) +
+  labs(title="Ranking de importância", subtitle="", y="Número de álbum >20", x="Gênero", caption="Dados primários",fill = "Raiz", size = "Número de pontos") +
   scale_size(range = c(.1, 18)) +
   #scale_fill_continuous(type = "viridis") +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
-#ggsave("3.Gen.png",width = 15, height = 8, dpi = 600)
+#ggsave("2021_12_28_Gênero.png",width = 15, height = 8, dpi = 600)
 ```
 Outro gráfico:
 ```
