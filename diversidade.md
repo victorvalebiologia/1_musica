@@ -23,7 +23,7 @@ pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os grá
 Agora vamos adicionar a planilha.
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Música/musica_estatistica.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/musica_estatistica.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                            sheet = 1, # em qual planilha estão os dados
                            colNames = T, # as colunas dos dados possuem nomes?
@@ -223,11 +223,11 @@ p3 <- subset(p2, Continente == "Oceania")
 p4 <- subset(p2, Continente == "Ásia")
 p2 <- rbind(p3,p4)
 
-p2 <- subset(p2, !is.na(Gênero))
+p2 <- subset(p2, !is.na(Estado))
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Gênero ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Língua ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -249,10 +249,10 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Gênero + Raiz ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Língua + Tronco ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 20)
+  subset(S > 5)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -264,28 +264,33 @@ Outra coisa, prestar atenção nas legendas, então verificar:
 - se o eixo y está certo;
 - se a legenda de cor está certa (deve ser a segunda variável da tabela)
 
+Ainda, para idiomas:
+- p2 com estados vazios;
+- diminuir o limite de 20 para 5.
+
 ```
-ggplot(local, aes(x = reorder(Gênero, S), y = S)) + 
-  geom_col(aes(weight = S, fill = Raiz), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Gênero, size = abund, colour = Raiz)) +
-  geom_text(aes(y = S, x = Gênero, label = S), size=4, alpha= 1) +
-  labs(title="Ranking de importância", subtitle="", y="Número de álbum >20", x="Gênero", caption="Dados primários",fill = "Raiz", size = "Número de pontos") +
-  scale_size(range = c(.1, 18)) +
-  #scale_fill_continuous(type = "viridis") +
+ggplot(local, aes(x = reorder(Tronco, S), y = S)) + 
+  geom_col(aes(fill = Língua), alpha = 0.7) + 
+  #geom_point(aes(y = S, x = Tronco, size = abund, colour = Língua)) +
+  #geom_text(aes(y = S, x = Tronco, label = S), size=4, alpha= 1) +
+  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Idiomas", caption="2022_01_29", size = "Número de pontos", fill = "Troncos Linguísticos", colour = "Troncos Linguísticos") +
+  scale_size_binned(range = c(.1, 15)) +
+  scale_y_continuous(breaks = c(0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200)) +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
-#ggsave("2021_12_28_Gênero.png",width = 15, height = 8, dpi = 600)
+#ggsave("2022_01_28_Idioma.png",width = 15, height = 8, dpi = 600)
 ```
+
 Outro gráfico:
 ```
 ggplot(local, aes(x = S, y = H)) + 
   geom_point(aes(size=abund, colour = País), alpha = 0.65)+ #size=abund
   scale_size(range = c(.1, 18), name = "Pontos") +
-  geom_label_repel(aes(label = Estado), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = Estado, size=4, alpha= 1, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
-                   segment.color = 'grey50') +
+                   segment.color = 'grey50')) +
   geom_text(aes(label = S), size=4, alpha= 1) +
   #labs(title="Número de artidtas por país > 20", subtitle="", y="Diversidade de artistas",x="Número de álbuns", caption="",
        #color = "Principais países", size = "Número de artistas") +
@@ -293,4 +298,3 @@ ggplot(local, aes(x = S, y = H)) +
   theme_classic() 
 #ggsave("3.Pais_artist.png",width = 15, height = 8, dpi = 600)
 ```
-S
