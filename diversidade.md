@@ -23,7 +23,7 @@ pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os grá
 Agora vamos adicionar a planilha.
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/musica_estatistica.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/musica.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                            sheet = 1, # em qual planilha estão os dados
                            colNames = T, # as colunas dos dados possuem nomes?
@@ -227,7 +227,7 @@ p2 <- subset(p2, !is.na(Estado))
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Língua ~ Álbum, value.var = "Pontos", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Gênero ~ Álbum, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -249,10 +249,10 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Língua + Tronco ~ Álbum, value.var = "Pontos", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Gênero + Raiz ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
 local <- local %>%
-  subset(S > 5)
+  subset(S > 20)
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -269,17 +269,19 @@ Ainda, para idiomas:
 - diminuir o limite de 20 para 5.
 
 ```
-ggplot(local, aes(x = reorder(Tronco, S), y = S)) + 
-  geom_col(aes(fill = Língua), alpha = 0.7) + 
-  #geom_point(aes(y = S, x = Tronco, size = abund, colour = Língua)) +
-  #geom_text(aes(y = S, x = Tronco, label = S), size=4, alpha= 1) +
-  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Idiomas", caption="2022_01_29", size = "Número de pontos", fill = "Troncos Linguísticos", colour = "Troncos Linguísticos") +
-  scale_size_binned(range = c(.1, 15)) +
-  scale_y_continuous(breaks = c(0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200)) +
-  theme(axis.title = element_text(size = 18), 
-        axis.text = element_text(size = 14)) + 
-        coord_flip() + theme_classic() 
-#ggsave("2022_01_28_Idioma.png",width = 15, height = 8, dpi = 600)
+ggplot(local, aes(x = reorder(Raiz, S), y = S)) +
+  #geom_point(aes(size=abund, colour = Gênero), alpha = 0.85) + scale_size_binned(range = c(.1, 16)) +
+  geom_col(aes(fill = Gênero), alpha = 0.65) + 
+  
+  #geom_label(aes(y = S, x = Gênero, label = S), position = position_stack(vjust = 0.99), size=3.5, alpha= 0.85) +
+  #geom_text_repel(aes(y = S, x = Gênero, label = abund), position = position_dodge(width = 0), vjust=1.75, size=3, colour = "red") +
+  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Raiz", caption="2022_02_29", size = "Número de faixas", fill = "Gênero") +
+  
+  scale_y_continuous(breaks = c(0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200)) + #0, 50, 100, 150, 200, 250, 300, 350, 400)) +
+  theme_classic() +
+  theme(legend.position="bottom") + #axis.title = element_text(size = 15), axis.text = element_text(size = 12), legend.position="bottom") 
+        coord_flip() 
+#ggsave("2022_02_28_gen2.png",width = 17, height = 8, dpi = 600)
 ```
 
 Outro gráfico:
