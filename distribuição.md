@@ -20,13 +20,13 @@ Agora baixar e ler alguns pacotes básicos.
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
+pacman::p_load(ggplot2, devtools, ggrepel, graphics,paletteer)
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 ```
 Agora vamos adicionar a planilha.
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Música/musica_estatistica.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/musica.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                            sheet = 1, # em qual planilha estão os dados
                            colNames = T, # as colunas dos dados possuem nomes?
@@ -123,6 +123,7 @@ p2 <- planilhatotal
 p2 <- subset(p2, !is.na(Gênero))
 p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2,Coletivo!="Vários")
+p2 <- subset(p2, !is.na(Continente))
 
 local<-reshape2::dcast(p2, Subcontinente ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
@@ -186,7 +187,7 @@ p2 <- subset(p2,Classificação!="Extra")
 p2 <- subset(p2,Classificação!="Outros") 
 p2 <- subset(p2,Coletivo!="Vários")
 
-p3<-p2 %>%
+p3 <-p2 %>%
   ggplot(aes(Lançado, Pontos, color = Continente)) +
   geom_point(size = 2, alpha = 0.3) +
   geom_smooth(aes(color = NULL), se=TRUE) +
@@ -217,10 +218,9 @@ Assim, vê que a. Anglo-saxônica, Latina e Ilhas Britânicas são os grandes co
 Dados cruzados também podem ser facilitados em compreensão com esse tipo de gráfico. Como continente e raiz musical. Vamos filtrar nossa tabela antes.
 ```
 p2 <- planilhatotal
-p2 <- subset(planilhatotal,Continente!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+p2 <- subset(p2,Classificação!="Extra")
+p2 <- subset(p2,Classificação!="Outros") 
+p2 <- subset(p2,Coletivo!="Vários")
 ```
 E vamos plotar:
 ```
@@ -232,11 +232,11 @@ p2 <- p2 %>%
       fill = Raiz), alpha = 0.5,size = 1, position = "stack") +
   geom_ysidedensity(aes(x = after_stat(count),
       fill = Raiz), alpha = 0.5, size = 1,position = "stack") +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
+  #scale_color_tq() +
+  #scale_fill_tq() +
+  #theme_tq() +
   labs(title = "Distribuição dos pontos por gênero" , subtitle = "Densidade",
-       x = "Ano", y = "Pontos") +  theme( ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
+       x = "Ano", y = "Pontos") +  theme(ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
 
 p2 + facet_grid(Continente~Raiz, space = "free", scales = "free") +
   labs(title = "Relação continente raiz musical", subtitle = "") +
@@ -258,11 +258,11 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Raiz)) +
   geom_ysideboxplot(
     alpha    = 0.5,
     size     = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
-  facet_grid(rows = vars(Continente), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por raíz musical e continente")
+  #scale_color_tq() +
+  #scale_fill_tq() +
+  #theme_tq() +
+  facet_grid(rows = vars(Continente), scales = "free_x") + 
+  labs(title = "Distibuição dos pontos por raíz musical e continente") +  theme(ggside.panel.scale.x = 0.4, ggside.panel.scale.y = 0.4)
 #ggsave("9.Distr_Ponto_ano_raiz_contin_asax.png",width = 15, height = 8, dpi = 600)
 ```
 Com esse gráfico fica evidente tanto os períodos musicais quanto as médias mais altas por continente. 
@@ -284,25 +284,26 @@ Outra forma de ver o dado e diminuindo a escala e vendo cada região. As princip
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
 p2 <- planilhatotal
-p2 <- subset(planilhatotal, Subcontinente == "E. Setentrional")
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
+
+p2 <- subset(p2, Classificação == "Principal")
+p2 <- subset(p2, Classificação!="Extra") 
+p2 <- subset(p2, Coletivo!="Vários") 
+
+p2 <- subset(planilhatotal, Subcontinente == "E. Ocidental")
+p2 <- subset(planilhatotal, Continente == "América")
+
 p2 <- subset(p2,País!="Brasil")
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+p2 <- subset(p2,Subcontinente!="Ilhas Britânicas") 
 ```
 Agora o gráfico seprando os países por gênero musical ao longo do tempo. O gráfico lateral superior mostra a proporção de gênero e laterial a direita um boxplot dos pontos:
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1) +
   geom_xsidedensity(aes(y = after_stat(count),
       color = Gênero),alpha = 0.5,size = 1, position = "stack") +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
+  #theme_tq() +
   #facet_grid(rows = vars(País), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_gen_subcontin_AméricaSax.png",width = 15, height = 8, dpi = 600)
@@ -310,15 +311,13 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
 E um gráfico mostrando os países por subcontinente.
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
-  theme_tq() +
+  #theme_tq() +
   geom_xsidedensity(aes(y = after_stat(count),
       color = País),alpha = 0.5,size = 1, position = "stack") +
-  facet_grid(rows = vars(Subcontinente), scales = "free_x") +
+  #facet_grid(rows = vars(Subcontinente), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_pais_subcontin_Américasax.png",width = 15, height = 8, dpi = 600)
 ```
@@ -334,43 +333,36 @@ Também podemos ver em uma escala de país. Os principais serão listadas abaixo
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
 p2 <- planilhatotal
-p2 <- subset(planilhatotal, País == "Suécia")
-#p2 <- subset(planilhatotal, País == "Canadá")
-#p3 <- subset(planilhatotal, País == "Canadá/EUA")
-#p2 <- rbind(p2,p3)
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Região!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+
+p2 <- subset(p2, Classificação == "Principal")
+p2 <- subset(p2, Classificação!="Extra") 
+p2 <- subset(p2, Coletivo!="Vários") 
+
+p2 <- subset(p2, País == "Brasil")
+
 ```
 Primeiro, vamos ver os gêneros:
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
-  geom_point() +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1) +
   geom_xsidedensity(aes(y = after_stat(count),
       color = Gênero),alpha = 0.5,size = 1, position = "stack") +
-  scale_color_tq() +
-  scale_fill_tq() +
   theme_tq() +
-  #facet_grid(rows = vars(País), scales = "free_x") +
+  #facet_grid(rows = vars(Raiz), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
 ```
 Agora vamos ver a contribuição dos estados por região ou estado (como Austrália).
 ```
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Região)) +
-  geom_point() +
+p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Estado)) +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
-  geom_ysideboxplot(alpha = 0.5,size = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
+  geom_ysideboxplot(alpha = 0.5,size = 1) +
   theme_tq() +
   geom_xsidedensity(aes(y = after_stat(count),
-      color = Região),alpha = 0.5,size = 1, position = "stack") +
+      color = Estado),alpha = 0.5,size = 1, position = "stack") +
   #facet_grid(rows = vars(Região), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente")
 #ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
@@ -386,27 +378,21 @@ Também podemos ver em uma escala de Gênero. Os principais serão listadas abai
 Os scripts a seguir são filtros. deve-se subsituir o termos e prestar atenção nas legendas.
 ```
 p2 <- planilhatotal
-p2 <- subset(planilhatotal, Gênero == "Hip Hop")
-#p2 <- subset(planilhatotal, País == "Canadá")
-#p3 <- subset(planilhatotal, País == "Canadá/EUA")
-#p2 <- rbind(p2,p3)
-p2 <- subset(p2,Continente!="Vários") 
-p2 <- subset(p2,Subcontinente!="Vários") 
-p2 <- subset(p2,Região!="Vários") 
-p2 <- subset(p2,Tipo!="Coletânea") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Single") #tirar n/a da espécies
-p2 <- subset(p2,Tipo!="Bonus") #tirar n/a da espécies
+
+p2 <- subset(p2, Classificação == "Principal")
+p2 <- subset(p2, Classificação!="Extra") 
+p2 <- subset(p2, Coletivo!="Vários") 
+
+p2 <- subset(p2, Gênero == "Pop Music")
 ```
 Primeiro, vamos ver os gêneros:
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
-  geom_point() +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1) +
   geom_xsidedensity(aes(y = after_stat(count),
       color = País),alpha = 0.5,size = 1, position = "stack") +
-  scale_color_tq() +
-  scale_fill_tq() +
   theme_tq() +
   #facet_grid(rows = vars(País), scales = "free_x") +
   labs(title = "Distibuição dos pontos por gênero e países")
@@ -415,11 +401,9 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
 Agora vamos ver a contribuição dos estados por região ou estado (como Austrália).
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Categoria)) +
-  geom_point() +
+  geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1  ) +
-  scale_color_tq() +
-  scale_fill_tq() +
   theme_tq() +
   geom_xsidedensity(aes(y = after_stat(count),
       color = Categoria),alpha = 0.5,size = 1, position = "stack") +

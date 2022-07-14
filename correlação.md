@@ -40,6 +40,20 @@ E filtrar ela.
 ```
 planilhatotal <- subset(planilhatotal, !is.na(Lançado)) #tirar n/a da ano
 planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
+
+p2 <- planilhatotal
+p2 <- subset(p2, !is.na(Lançado))
+p2 <- subset(p2,Coletivo!="Vários")
+p2 <- subset(p2, Classificação == "Principal")
+
+p2 <- subset(p2, !is.na(Mês))
+p2 <- subset(p2, !is.na(Dia))
+
+p3 <- p2 %>% 
+  select(Lançado,Mês,Dia) %>% 
+  mutate(Data = make_date(Lançado,Mês,Dia))
+Data <- data.frame(p3,p2)
+
 ```
 Agora testaremos antes de começar as análises com alguns gráficos simples
 ```
@@ -73,7 +87,7 @@ ggplot(planilhatotal, aes(sample=Pontos, colour = Raiz)) +
      theme_bw()
 ```
 Para garantir é fazendo um teste de Shapiro Wilk. Se p não for significativo a variável é normal. 
-`shapiro.test(planilhatotal$Pontos)`
+`shapiro.test(p2$Pontos)`
 Nesse caso fica claro que a variável não é normal.
 
 ## Análise de Variância
@@ -81,7 +95,7 @@ Primeiro vamos instalar o pacote.
 `pacman::p_load(tidyverse, FSA, emmeans)`
 
 Agora vamos ver os grupos por décadas:
-`aggregate(Pontos ~ Década, planilhatotal, var)` 
+`aggregate(Pontos ~ Década, p2, var)` 
 
 Nota-se que as médias de pontos nas décadas não são o mesmos.Um teste de homogeneidade de variância de Bartlett vai testar se há desigualdade. A hipótese nula é que são iguais, se o p for menos que 0,05 esta hipótese foi negada, que foi o caso.
 `bartlett.test(Pontos ~ Década, planilhatotal)`
@@ -93,18 +107,18 @@ Primeiro vamos testar uma ANOVA. A Análise de Variância (ANOVA) trata-se de um
 - As variâncias em cada grupo devem ser aproximadamente iguais.
 
 ```
-dicalt <- lm(Pontos ~ Continente, data = planilhatotal) 
+dicalt <- lm(Pontos ~ Continente, data = p2) 
 anova(dicalt) 
 ```
 Nesse teste a h0 significa não variável, o que foi estatisticamente não confirmado. Note forma considerados cinco continentes e que o F é diferença das médias. Uma outra forma de ver é pelo summary.
 `summary(dicalt)`
 
-Aqui, percebe-se que dentro da cada fator, noc aso continentes, nem todos apresentam variância, como no continente Americano. Porém, no conjunto entre os fatores existe uma diferença significativa entre elas. Ainda, outro parâmetro para se notar é o R². O R-quadrado (coeficiente de determinação) é uma medida estatística de quão próximos os dados estão da linha de regressão ajustada. Os valores são entre 0 e 1, onde 0 indica que o modelo não explica nada da variabilidade dos dados de resposta ao redor de sua média e 1 o contrário. Nesse caso os continentes não explicariam bem a diferença, apesar dela existir. Gênero, país e mesmo o artista tem um poder de explicação maior.
+Aqui, percebe-se que dentro da cada fator, no caso continentes, nem todos apresentam variância, como no continente Americano. Porém, no conjunto entre os fatores existe uma diferença significativa entre elas. Ainda, outro parâmetro para se notar é o R². O R-quadrado (coeficiente de determinação) é uma medida estatística de quão próximos os dados estão da linha de regressão ajustada. Os valores são entre 0 e 1, onde 0 indica que o modelo não explica nada da variabilidade dos dados de resposta ao redor de sua média e 1 o contrário. Nesse caso os continentes não explicariam bem a diferença, apesar dela existir. Gênero, país e mesmo o artista tem um poder de explicação maior.
 
-Também da para verificar o grau de liberdade dessa análise.
+Também da para verificar o grau de liberdade dessa análise[PROBLEMAS FSA].
 ```
 sumdata <- planilhatotal %>%
-  dplyr::group_by(Continente) %>%
+  dplyr::group_by(Raiz) %>%
   dplyr::summarize(n=dplyr::n(),
                    mn=mean(Pontos),
                    se=FSA::se(Pontos)) %>%
@@ -130,20 +144,20 @@ O pacote Expdes `pacman::p_load(ExpDes)` possui um conjunto de teste de signific
 - teste Tukey para comparar as médias e verificar aquelas que diferem. 
 
 Vamos ver para pontos por décadas.
-`crd(planilhatotal$Década, planilhatotal$Pontos, mcomp = "tukey", sigF = 0.01, sigT = 0.01)`
+`crd(p2$Década, p2$Pontos, mcomp = "tukey", sigF = 0.01, sigT = 0.01)`
 
 Fica claro que os dados variam, não sao normal, que não são homogenos e que 1930 e 2010 se isolam, sendo o resto dos grupos em estados intermediários. O mesmo ocorre para subcontinente, gênero e outros.
 
 ### Teste de Wilcoxon
 Agora, como comparar as médias em dados não paramétricos, como substituir o anova. Uma forma é o teste de Wilcoxon, que é usado para dados não paramétricos com grande diferença de magnitude para usado para comparar amostras relacionadas, amostras combinadas ou medições repetidas em uma única amostra para avaliar se suas classificações de médias populacionais diferem. Vamos seguir o seguinte [site](https://www.r-bloggers.com/2021/05/wilcoxon-signed-rank-test-in-r/)
 Primeiro o apcote. 
-`pacman::p_load(ggpubr,reshape, psych, exactRankTests)`
+`pacman::p_load(ggpubr,reshape, psych, exactRankTests)`phytools
 
-Agora,vamos isolar o conjunto de dados que iremos comparar. No caso vai ser o tipo de álbum, entre principais e extras.
+Agora,vamos isolar o conjunto de dados que iremos comparar. No caso vai ser o tipo de álbum, entre principais e extras[PROBLEMAS GGBOXPLOT].
 ``` 
-Principal <- planilhatotal %>% subset(planilhatotal$Classificação == "Principal")
+Principal <- p2 %>% subset(p2$Classificação == "Principal")
 Principal <- Principal$Pontos
-Extra <- planilhatotal %>% subset(planilhatotal$Classificação == "Extra")
+Extra <- p2 %>% subset(p2$Classificação == "Extra")
 Extra <- Extra$Pontos
 Tipo <- cbind(Principal,Extra)
 Tipo <- melt(Tipo)
@@ -187,7 +201,7 @@ E para	conhecer	o	efeito	dos	2	factores	em	conjunto	testam-se	as	seguintes	hipó
 Dessa forma, quando	o	efeito	interativo	não	é	significativo,	passa-se	para	a	interpretação	dos efeitos	dos	fatores	isolados,	que	podem	ou	não	ser	estatisticamente	 significativos.	Quanto	o	efeito	da	interacção	é	significativo	os	efeitos	isolados	perdem	o	
 significado	e	não	devem	ser	interpretados.	A	interacção	significa	que	existem	combinações	dos	dois	factores	que	produzem	efeitos	diferentes	na	variâvel dependente	do	que	aqueles	que	seria	de	esperar	se	os	factores	fossem	considerados	isoladamente.	
 ```
-aov2 <- lm(Pontos~Lançado*Continente,data=planilhatotal)
+aov2 <- lm(Pontos~Lançado*Continente,data=p2)
 anova(aov2)
 ```
 No nosso caso, tanto continente quanto o ano de lançamento apresentam interação com os pontos. Uma forma de ver isso é por meio de gráfico simples ou por ggplot.
@@ -195,7 +209,7 @@ No nosso caso, tanto continente quanto o ano de lançamento apresentam interaç�
 
 ```
 pd <- position_dodge(width=0.2)
-ggplot(data=planilhatotal,mapping=aes(x=Lançado,y=Pontos,color=Continente)) +  
+ggplot(data=p2,mapping=aes(x=Lançado,y=Pontos,color=Continente)) +  
   stat_summary(fun.data=mean_cl_normal,geom="errorbar",width=0.2,position=pd) + 
   stat_summary(fun=mean,geom="line",aes(group=Continente),position=pd) +  
   stat_summary(fun=mean,geom="point",position=pd) +
@@ -206,7 +220,7 @@ ggplot(data=planilhatotal,mapping=aes(x=Lançado,y=Pontos,color=Continente)) +
 ### Regressão Linear simples
 Regressão linear é o processo de traçar uma reta através dos dados em um diagrama de dispersão. A reta resume esses dados, o que é útil quando fazemos previsões. Primeiro calculamos a variação com um anova.
 ```
-slr <- lm(Pontos~Lançado,data=planilhatotal)
+slr <- lm(Pontos~Lançado,data=p2)
 anova(slr)
 ```
 Em seguida plotamos em gráficos para ver se existe alguma relação positiva, negativa ou nenhuma relação. 
@@ -219,20 +233,20 @@ FSA::peek(slrdf,n=6)
 ```
 ou 
 ```
-ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
+ggplot(p2,aes(x=Lançado,y=Pontos)) +
   geom_smooth(method="lm",alpha=0.2) +
   geom_point()+
   theme_classic()
 ```  
 Nesse caso vimos que existe uma relação negativa, a média de pontos diminui com o passar do tempo. POdemos também observar a regressão por fator.
 ```  
-ivr <- lm(Pontos~Lançado*Continente,data=planilhatotal)
+ivr <- lm(Pontos~Lançado*Continente,data=p2)
 anova(ivr)
 FSA::fitPlot(ivr,interval="confidence")
 ```  
 repare que é o mesmo do anova two-away. Outro gráfico: 
 ```
-ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
+ggplot(p2,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
   geom_smooth(method="lm",alpha=0.2) +
   geom_point() +
   theme_classic()
@@ -240,7 +254,8 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) 
 
 Dados binários também podem ser analisados para vê se ocorre diferença entre eles. 
 ```  
-logreg <- glm(Binário~Pontos,data=planilhatotal,family="binomial")
+pacman::p_load(phytools)
+logreg <- glm(Binário~Pontos,data=p2,family="binomial")
 summary(logreg)  
 ```  
 Que foi o caso, existe mais o dado 1 (que equivale a álbuns principais) do que 0 (que seria o extras). Uma forma d ever isso é por gráfico. 
@@ -280,10 +295,10 @@ Note o gráfico a forte tendência de queda na média de pontos nos anos mais re
 
 O mesmo para o gráfico em ggplot que pode ser desmembrado em fatores. 
 ``` 
-polydf <- dplyr::select(planilhatotal,Lançado,Pontos)
+polydf <- dplyr::select(p2,Lançado,Pontos)
 polydf <- cbind(polydf,predict(poly2,newdata=polydf,interval="confidence"))
 
-ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
+ggplot(p2,aes(x=Lançado,y=Pontos)) +
   geom_smooth(method="lm",formula="y~x+I(x^2)",alpha=0.2) +
   geom_point() +
   theme_classic()
@@ -291,8 +306,8 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos)) +
 ### Gráficos
 Um exemplo de gráfico mais elaborado que mede a regressão linear de pontos por ano de lançamento por continente. 
 ``` 
-ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
-  geom_smooth(method="lm",alpha=0.1,size=1.25) +
+ggplot(p2,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) +
+  geom_smooth(method="lm",formula="y~x+I(x^2)", alpha=0.1,size=1.25) +
   geom_point(size=1.5) +
   scale_y_continuous(name="Pontos", #limits=c(0,0.5),
                      expand=expansion(mult=0)) +
@@ -312,8 +327,8 @@ ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Continente,fill=Continente)) 
 ``` 
 Ou um gráfico entre os tipos de álbum. 
 ``` 
-ggplot(planilhatotal,aes(x=Lançado,y=Pontos,color=Classificação,fill=Classificação)) +
-  geom_smooth(method="lm",alpha=0.1,size=1.25) +
+ggplot(p2,aes(x=Lançado,y=Pontos,color=Gravação,fill=Gravação)) +
+  geom_smooth(method="lm",formula="y~x+I(x^2)",alpha=0.1,size=1.25) +
   geom_point(aes(size = Soma), alpha = 0.35) + #(size=1.5) +
   scale_y_continuous(name="Pontos", #limits=c(0,0.5),
                      expand=expansion(mult=0)) +
@@ -380,8 +395,22 @@ Outra forma de ver os dados é fazer uma análise de similaridade de Jaccard e p
 
 Vamos ver se existe alguma similaridade entre os gêneros considerando os países que possuem álbuns nos diversos gêneros. 
 ``` 
-local<-reshape2::dcast(planilhatotal, Gênero ~ País, value.var = "Pontos", fun.aggregate = sum)
+p2 <- planilhatotal
+p2 <- subset(p2,Coletivo!="Vários") 
+p2 <- subset(p2, !is.na(Estado))
+p2 <- subset(p2, !is.na(Subgênero))
+
+p2 <- subset(p2, País == "Canadá")
+p2 <- subset(p2, Continente == "Europa")
+p2 <- subset(p2, Subcontinente == "E. Meridional")
+
+local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Pontos", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
+
+S <- specnumber(local)
+local<-data.frame(S, local) 
+local <- local %>%   subset(S > 7)
+
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) 
 #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
@@ -390,25 +419,7 @@ hc <- hclust(d)               # apply hierarchical clustering
 plot(hc, labels=local$ID)    # plot the dendrogram
 #dev.off()
 ``` 
-Nota-se que alguns grupos foram criados. Um com gêneros mais mainstream sendo irmão de um de música americana. Outro com ritmos brasileiros. O mesmo pode ser realizado com décadas, subcontinente e outros. Vamos testar agora um agrupamento de países por categoria de gêneros. Primeira vamos filtrar os dados retirando vários.
-``` 
-p2 <- planilhatotal <- subset(planilhatotal,Subcontinente!="Varios") #tirar Vários de subcontintete
-p2 <- p2 %>%  subset(Pontos > 8) 
-#planilhaalbum <- subset(planilhaalbum,Tipo!="Coletânea") #tirar n/a da espécies
-``` 
-Agora o cluster:
-``` 
-pacman::p_load("ade4")
-local<-reshape2::dcast(p2, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
-local=data.frame(local, row.names=1)
-d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
-hc <- hclust(d)               # apply hierarchical clustering 
-#par(mgp=c(1,1,0)) #exportar a imagem
-#png(filename="/home/user/Área de Trabalho/Música/5.clus_pais_categ.png",width=800,height=600) #local e tmamanho
-plot(hc, labels=local$ID)    # plot the dendrogram
-#dev.off()
-``` 
-USA e Inglaterra ficaram próximos, por serem os países com mais dados, sendo a maior proporção de rock aioria de categorias de rock.
+
 
 ## Correlação
 Análises de correlação podem ser positivas ou negativas. Aqui, usando apenas variáveis numéricas, vamos comparar pontps e ano.
