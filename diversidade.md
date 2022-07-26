@@ -18,7 +18,7 @@ Agora baixar e ler alguns pacotes básicos.
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, devtools, ggrepel, graphics,lubridate) 
+pacman::p_load(ggplot2, ggrepel, graphics,lubridate) #devtools, 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 ```
 Agora vamos adicionar a planilha.
@@ -37,11 +37,7 @@ E filtrar ela.
 planilhatotal <- subset(planilhatotal, !is.na(Lançado)) #tirar n/a da ano
 planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
 ```
-Agora testaremos antes de começar as análises com alguns gráficos simples
-```
-ts.plot(planilhatotal$Lançado)
-boxplot(planilhatotal$Pontos)
-```
+
 ## Acumulação
 Primeiro a data:
 
@@ -49,14 +45,13 @@ Primeiro a data:
 p2 <- planilhatotal
 p2 <- subset(p2, !is.na(Lançado))
 
+p3 <- subset(p2, !is.na(Mês))
+p3 <- subset(p2, !is.na(Dia))
 
-p2 <- subset(p2, !is.na(Mês))
-p2 <- subset(p2, !is.na(Dia))
-
-p3 <- p2 %>% 
+Data <- p3 %>% 
   select(Lançado,Mês,Dia) %>% 
   mutate(Data = make_date(Lançado,Mês,Dia))
-Data <- data.frame(p3,p2)
+Data <- data.frame(p3,Data)
 ```
 Vamos começar com uma análise de acumualção de dados. Podemos investigar a acumulação de:
 - Álbuns;
@@ -243,8 +238,12 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 ```
 local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
 local<-data.frame(local, H, simp, S, J, abund)
-local <- local %>%
-  subset(S > 19)
+local <- local %>%   subset(S > 19)
+
+local <- local %>%  subset(S %in% 10:19)  
+
+local <- local %>%  subset(S %in% 5:9)  
+  
 ```
 Agora vamos plotar, mas preste atenção em:
 - Se a variável analisada está em colour do geom_point;
@@ -363,34 +362,39 @@ ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10,
        device = "png", filename = "2022_06_01_label", plot = R)
 
 ```
-Vamos ver se existe alguma similaridade entre os gêneros considerando os países que possuem álbuns nos diversos gêneros. Outra forma de ver cluster é assim, onde k = núero de categorias:
+Vamos ver se existe alguma similaridade entre os gêneros considerando os países que possuem álbuns nos diversos gêneros. Outra forma de ver cluster é assim, onde k = núero de categorias em "branches_k_color" e "labels_colors":
 
 ``` 
 pacman::p_load("plotly", "ggdendro")
 pacman::p_load("magrittr", "dendextend")
 
 p2 <- planilhatotal
+p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2,Coletivo!="Vários") 
 p2 <- subset(p2, !is.na(Estado))
 p2 <- subset(p2, !is.na(Subgênero))
 
-local<-reshape2::dcast(p2, Estado ~ Categoria, value.var = "Pontos", fun.aggregate = sum)
+#p2 <- subset(p2, Gênero == "Rock")
+
+local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = NULL) #sum ou NULL
 local=data.frame(local, row.names=1)
 S <- specnumber(local)
+local[local>0]<-1 #tansformar em presença e ausência
 local<-data.frame(S, local) 
 local <- local %>%   subset(S > 9)
 
 dend <- local %>% dist %>%
   hclust %>% as.dendrogram %>%
-  set("branches_k_color", k = 6) %>% set("branches_lwd", 0.7) %>%
-  set("labels_cex", 0.6) %>% set("labels_colors", k = 4) %>%
+  set("branches_k_color") %>% set("branches_lwd", 0.7) %>%
+  #set("branches_lty", c(1, 1, 3, 1, 1, 2)) %>%
+  set("labels_cex", 0.6) %>% set("labels_colors") %>%
   set("leaves_pch", 19) %>% set("leaves_cex", 0.5) 
-ggd1 <- as.ggdend(dend)
-R<-ggplot(ggd1, horiz = TRUE)
+ggd1 <- as.ggdend(dend) #,type = "triangle")
+R<-ggplot(ggd1, horiz = TRUE) #+ scale_y_reverse(expand = c(0.2, 0)) + coord_polar(theta = "x")
 R
 
-ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_06_01_clusterestad", plot = R)
+#ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
+       device = "png", filename = "2022_07_15_clusterestasubg", plot = R)
 
 ``` 
 
