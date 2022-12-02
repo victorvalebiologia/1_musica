@@ -218,7 +218,7 @@ p2 <- rbind(p3,p4)
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Língua ~ Álbum, value.var = "Soma", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -240,13 +240,13 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Língua + Tronco ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
 local<-data.frame(S, local, H, simp, J, abund)
-local <- local %>%   subset(S > 29)
+local <- local %>%   subset(S > 34)
 
-local <- local %>%  subset(S %in% 15:29)  
+local <- local %>%  subset(S %in% 16:34)  
 
-local <- local %>%  subset(S %in% 7:14)  
+local <- local %>%  subset(S %in% 7:15)  
   
 ```
 Agora vamos plotar, mas preste atenção em:
@@ -264,14 +264,14 @@ Ainda, para idiomas:
 - diminuir o limite de 20 para 5.
 
 ```
-theplot <- ggplot(local, aes(x = reorder(Subgênero, S), y = S)) +
+theplot <- ggplot(local, aes(x = reorder(Estado, S), y = S)) +
   #geom_point(aes(size=abund, colour = Subcontinente), alpha = 0.85) + scale_size_binned(range = c(.1, 16)) +
-  geom_col(aes(fill = Raiz), alpha = 0.65) + 
+  geom_col(aes(fill = País), alpha = 0.65) + 
   
-  geom_label_repel(aes(y = S, x = Subgênero, label = S), position = position_stack(vjust = 0.99), size=3.5, alpha= 0.85) +
+  geom_label_repel(aes(y = S, x = Estado, label = S), position = position_stack(vjust = 0.99), size=3.5, alpha= 0.85) +
   #geom_text_repel(aes(y = S, x = Estado, label = abund), position = position_dodge(width = 0), vjust=1.75, size=3, colour = "red") +
   
-  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Subgênero", caption="2022_10_01", size = "Número de faixas", fill = "Raiz") +
+  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Estado", caption="2022_11_01", size = "Número de faixas", fill = "País") +
   
   #scale_y_continuous(breaks = c(0, 50, 100, 150, 200, 250, 300, 350, 400)) 
   theme_classic() +
@@ -281,7 +281,7 @@ theplot <- ggplot(local, aes(x = reorder(Subgênero, S), y = S)) +
 theplot  
   
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_10_01_subg3", plot = theplot)
+       device = "png", filename = "2022_11_01_esta3", plot = theplot)
      
 
 ```
@@ -297,6 +297,7 @@ p2 <- subset(p2,Classificação!="Extra")
 p2 <- subset(p2, !is.na(Lançado))
 
 p2 <- subset(p2, !is.na(Artista_principal))
+p2 <- subset(p2,Artista_principal!="Parceria") 
 #p2 <- subset(p2, !is.na(Aglomerado))
 p2 <- subset(p2, !is.na(Década))
 p2 <- subset(p2, !is.na(Origem))
@@ -318,7 +319,7 @@ local <- local %>%
   subset(S > 14)
 
 local <- local %>%  
-  subset(S %in% 5:14)  
+  subset(S %in% 10:14)  
 
 R <- renyi(local,hill = TRUE)
 
@@ -339,7 +340,7 @@ R <- R %>%
 R  
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_08_03_artista2", plot = R)
+       device = "png", filename = "2022_11_01_artista2", plot = R)
        
 
 ```
@@ -353,14 +354,14 @@ p2 <- subset(p2, !is.na(Origem))
 p2 <- subset(p2, !is.na(Conjunto))
 p2 <- subset(p2, !is.na(Aglomerado))
 
-local<-reshape2::dcast(p2, Artista ~ Origem, value.var = "Soma", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Artista ~ Aglomerado, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 # Mude o q para 1 para comparar a diversidade de Shannon e para 2 para Simpson
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 30500, length.out=20))
+             size = seq(0, 8500, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -374,7 +375,7 @@ R <- ggiNEXT(out, type = 1) +
 R
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_08_03_fonte", plot = R)
+       device = "png", filename = "2022_11_01_label", plot = R)
 
 ```
 ## Cluster
@@ -392,14 +393,17 @@ p2 <- subset(p2,Estado!="Não Sei")
 p2 <- subset(p2, !is.na(Estado))
 p2 <- subset(p2, !is.na(Subgênero))
 
-#p2 <- subset(p2, País == "Estados Unidos")
+#p2 <- subset(p2, País == "Brasil")
+#p2 <- subset(p2, Subcontinente == "Am. Anglo-Saxônica")
+#p2 <- subset(p2, Continente == "Europa")
 
-local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = sum) #sum ou NULL
+local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = NULL) #sum ou NULL
 local=data.frame(local, row.names=1)
 S <- specnumber(local)
 #local[local>0]<-1 #tansformar em presença e ausência
 local<-data.frame(S, local) 
 local <- local %>%   subset(S > 4)
+local$S <- NULL
 
 dend <- local %>% dist %>%
   hclust %>% as.dendrogram %>%
@@ -415,7 +419,7 @@ as.hclust(dend)
 
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_08_3_clusterestsubg", plot = R)
+       device = "png", filename = "2022_11_10_clusterestsubg", plot = R)
 
 ``` 
 Outra forma de plotar. 
@@ -468,8 +472,10 @@ p2 <- subset(p2, !is.na(Subgênero))
 #p2 <- subset(p2, Subcontinente == "Am. Latina")
 #p2 <- subset(p2, Raiz == "Latin Music")
 #p2 <- subset(p2, Gênero == "Rock")
-#p2 <- subset(p2, País == "Canadá")
+#p2 <- subset(p2, País == "Brasil")
 #p2 <- subset(p2, Década == "1990")
+
+#p2 <- p2 %>%  subset(Ranking < 200)
 
 local<-reshape2::dcast(p2, Estado ~ Gênero, value.var = "Soma", fun.aggregate = sum) #sum ou NULL
 local=data.frame(local, row.names=1)
@@ -489,7 +495,7 @@ frame = TRUE, frame.type = NULL, frame.color = 'Subcontinente', #ou frame.type =
 pca
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_10_3_PCA", plot = pca)
+       device = "png", filename = "2022_11_1_PCA", plot = pca)
 ``` 
 
 ## Gráfico de núvens
@@ -544,30 +550,31 @@ wordcloud(words = names(word.freq), freq = word.freq, scale = c(4, 0.3), max.wor
 pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
 p2 <- planilhatotal
-p3 <- p2 %>% filter(str_detect(Artista.Tag, "Zé Ramalho"))
-#p3 <- subset(p3, Artista == "Queen")
-#p3 <- subset(p3,Artista!="Princess Chelsea") 
-p4 <- p2 %>% filter(str_detect(Artista.Tag, "Raul Seixas")) 
+p3 <- p2 %>% filter(str_detect(Artista.Tag, "Gilberto Gil"))
+p4 <- p2 %>% filter(str_detect(Artista.Tag, "Caetano Veloso")) 
 p3 <- rbind(p3,p4)
+#p3 <- subset(p3, Artista == "Nick Drake") #escolher artista
+p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
 p3<-unique(p3)
 
 p4 <- p3
 p4 <- subset(p4,Classificação!="Extra") 
 p4 <- subset(p4,Classificação!="Outros") 
 
-p4 <- p4 %>%  subset(Nota > 0.5)
+p4 <- p4 %>%  subset(Nota > 0.6)
 
 ggplot(p4, aes(x = Lançado, y = Pontos)) + 
   geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
-  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = loess
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
   scale_shape_manual(values = 0:10) +
-  #geom_line(aes(colour=Tipo)) +
-  #facet_grid(Classificação~Gravação) +
+  geom_line(aes(colour = Artista_principal), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
   scale_size(range = c(5, 18), name = "Número de audições") +
   geom_label_repel(aes(label = Álbum, colour = Artista_principal), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
   labs(title=" ", subtitle="",y="Pontos",x="Ano de lançamento", caption="", shape = "Tipo de álbum", colour = "Artista_principal", size = "Número de audições") +
-  geom_xsideboxplot(aes(fill = Artista_principal), alpha = 0.5) +
-  geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
+  geom_xsideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) + #
   stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.33) +        
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
   theme_classic()
@@ -577,10 +584,18 @@ Ou:
 
 
 ``` 
-ggplot(p3, aes(x = Lançado, y = Total)) + 
+p4 <- p3
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+
+ggplot(p4, aes(x = Lançado, y = Total)) + 
   geom_point(aes(colour = Tipo, size = Tocado, shape = Artista_principal)) + 
   scale_shape_manual(values = 0:10) +
   geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Tipo)) + 
+  geom_line(aes(colour = Tipo), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Total)), linetype = "dashed", alpha = 0.4) + 
   #facet_grid(Classificação~Gravação) +
   scale_size(range = c(5, 18), name = "Número de audições") +
   geom_label_repel(aes(label = Álbum, colour = Tipo), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
