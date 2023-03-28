@@ -10,6 +10,9 @@ Repositório para testes de scripts em uma tabela pessoal de álbuns. O intuito 
 
 ## Início
 Primeiro, vamos indicar as pastas corretas.
+
+## Início
+Primeiro, vamos indicar as pastas corretas.
 ```
 getwd()
 setwd("/home/user/Área de Trabalho/Música") 
@@ -20,32 +23,438 @@ Agora baixar e ler alguns pacotes básicos.
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, ggrepel, graphics,paletteer) #devtools, 
+pacman::p_load(ggplot2, ggrepel, graphics,lubridate, gghighlight) #devtools, 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 ```
 Agora vamos adicionar a planilha.
 ```
-pacman::p_load(openxlsx) 
+pacman::p_load(openxlsx)
 caminho.do.arquivo <- "/home/user/Área de Trabalho/musica.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                            sheet = 1, # em qual planilha estão os dados
                            colNames = T, # as colunas dos dados possuem nomes?
                            na.strings = "NA") # como estão identificados os dados omissos?
 
-head(planilhatotal)
+#head(planilhatotal)
 ```
 E filtrar ela.
 ```
 planilhatotal <- subset(planilhatotal, !is.na(Lançado)) #tirar n/a da ano
 planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
-```
-Agora testaremos antes de começar as análises com alguns gráficos simples
-```
-ts.plot(planilhatotal$Lançado)
+p2 <- planilhatotal
+p2 <- subset(p2, !is.na(Lançado))
+p2[is.na(p2)] <- 6
 
-boxplot(planilhatotal$Pontos)
+p3 <- subset(p2, !is.na(Mês))
+p3 <- subset(p3, !is.na(Dia))
+
+Data <- p3 %>% 
+  select(Lançado,Mês,Dia) %>% 
+  mutate(Data = make_date(Lançado,Mês,Dia))
+Data <- data.frame(p3,Data)
+
 ```
 
+## Gráfico exploratório artistas
+
+Primeiro uma visão do artista ao longo do tempo.
+``` 
+pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
+
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(Artista.Tag, "Caetano Veloso"))
+p4 <- p2 %>% filter(str_detect(Artista.Tag, "Iron Maiden")) 
+p3 <- rbind(p3,p4)
+#p3 <- subset(p3, Artista == "Nick Drake") #escolher artista
+#p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+p4 <- subset(p4,Classificação!="Extra") 
+p4 <- subset(p4,Classificação!="Outros") 
+
+p4 <- p4 %>%  subset(Nota > 0.55)
+
+ggplot(p4, aes(x = Data, y = Pontos)) + 
+  geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
+  scale_shape_manual(values = 0:10) +
+  geom_line(aes(colour = Artista_principal), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = Artista_principal), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title=" ", subtitle="",y="Pontos",x="Ano de lançamento", caption="", shape = "Tipo de álbum", colour = "Artista_principal", size = "Número de audições") +
+  geom_xsideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) + #
+  stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.1) +        
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
+  theme_classic()
+
+``` 
+Detalhando por tipo de lançamento.
+
+``` 
+p4 <- p3
+#p4 <- subset(p4, Gravação == "Live") #escolher artista
+#p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+
+ggplot(p4, aes(x = Data, y = Total)) + 
+  geom_point(aes(colour = Tipo, size = Tocado, shape = Artista_principal)) + 
+  scale_shape_manual(values = 0:10) +
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Tipo)) + 
+  geom_line(aes(colour = Tipo), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Total)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(Classificação~Gravação) +
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = Tipo), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title="", subtitle="",y="Total",x="Ano de lançamento", caption="",size = "Número de audições", shape = "Artista", colour = "Tipo de Álbum", fill = "Tipo de Álbum") +
+  geom_ysideboxplot(aes(fill = Tipo), alpha = 0.5,size = 0.5) +
+  geom_xsideboxplot(aes(fill = Tipo), alpha = 0.5,size = 0.5) + 
+  #geom_xsidedensity(aes(fill = Tipo, y = after_stat(count)), position = "stack") +
+  stat_ellipse(geom="polygon", aes(fill = Tipo), alpha = 0.2, show.legend = TRUE, level = 0.1) +        
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) +
+  theme_classic()
+  
+#ggsave("ano.png",width = 15, height = 8, dpi = 600)
+
+``` 
+Agora, considerando a localização ou o gênero relacionado ao artista com outros do mesmo tipo ao longo do tempo.
+
+``` 
+pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
+
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(Estado, "Paraná"))
+#p3 <- p2 %>% filter(str_detect(Gênero, "MPB")) 
+
+#p3 <- p3 %>% filter(str_detect(Gênero, "MPB")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Categoria, "Alternative Rock")) #escolher artista
+#p3 <- subset(p3, Região!="Mid-Atlantic") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+p4 <- subset(p4,Classificação!="Extra") 
+p4 <- subset(p4,Classificação!="Outros") 
+
+p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Tocado > 3)
+
+ggplot(p4, aes(x = Data, y = Pontos)) + 
+  geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
+  scale_shape_manual(values = 0:10) +
+  geom_line(aes(colour = Artista_principal), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = Artista_principal), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title=" ", subtitle="",y="Pontos",x="Ano de lançamento", caption="", shape = "Tipo de álbum", colour = "Artista_principal", size = "Número de audições") +
+  geom_xsideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) + #
+  stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14), legend.position = "none") 
+
+``` 
+Cosiderando os subtipos de música por local relacionado ao artista com ou não recorte de tempo.
+
+``` 
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(Categoria, "Neo Soul")) 
+#p3 <- subset(p3, Coletivo!="Vários") #retirar artista
+#p3 <- subset(p3, Estado!="Não Sei") #retirar artista
+
+#p3 <- p3 %>% filter(str_detect(País, "Estados Unidos")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Década, "1960")) #escolher artista
+#p3 <- subset(p3, Gênero!="MPB") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+p4 <- subset(p4,Classificação!="Extra") 
+p4 <- subset(p4,Classificação!="Outros") 
+
+p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Ranking < 500)
+
+ggplot(p4, aes(x = Data, y = Pontos)) + 
+  geom_point(aes(colour = Subgênero, size = Tocado, shape = Tipo), alpha = 0.6) + 
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Subgênero)) +  #method = lm ou loess
+  scale_shape_manual(values = 0:10) +
+  geom_line(aes(colour = Subgênero), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(Categoria~., scales = "free_x", space = "free_x") + #
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = Subgênero), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title=" ", subtitle="",y="Pontos",x="Ano de lançamento", caption="", shape = "Tipo de álbum", colour = "Subgênero", fill = "Subgênero", size = "Número de audições") +
+  geom_xsideboxplot(aes(fill = Subgênero),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Subgênero),alpha = 0.5) + #
+  stat_ellipse(geom="polygon", aes(fill = Subgênero), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+
+``` 
+Agora, uma visão mais global da média de gênero por lugar ou tempo.
+
+``` 
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(País, "Canadá")) 
+#p3 <- subset(p3, Coletivo!="Vários") #retirar artista
+#p3 <- subset(p3, Estado!="Não Sei") #retirar artista
+
+#p3 <- p3 %>% filter(str_detect(Gênero, "Rock")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Região, "Sul")) #escolher artista
+#p3 <- subset(p3, Região!="Mid-Atlantic") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Ranking < 500)
+
+ggplot(p4, aes(x = Data, y = Categoria)) + 
+  geom_point(aes(colour = Tipo, shape = Tipo, size = Tocado), alpha = 0.6, stroke = 2) + 
+  geom_boxplot(alpha = 0.5) + 
+  scale_shape_manual(values = 0:12) +
+  #gghighlight(Artista == "EPMD", label_key = Álbum, unhighlighted_colour = "black") +  
+  facet_grid(Gênero~., scales = "free_y", space = "free_y") + 
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  labs(title=" ", subtitle="",y="Categoria",x="Data", caption="", colour = "Tipo", shape = "Tipo", size = "Número de audições") +
+  #geom_xsideboxplot(aes(fill = Categoria),alpha = 0.5) +
+  #geom_ysideboxplot(aes(fill = Categoria),alpha = 0.5) + 
+  #stat_ellipse(geom="polygon", aes(fill = Categoria), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+
+``` 
+E das regiões
+
+``` 
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(País, "França")) 
+p3 <- subset(p3, Coletivo!="Vários") #retirar artista
+#p3 <- subset(p3, Estado!="Não Sei") #retirar artista
+
+#p3 <- p3 %>% filter(str_detect(Raiz, "Anglo")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Região, "Pacif")) #escolher artista
+#p3 <- subset(p3, Região!="Mid-Atlantic") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Ranking < 500)
+
+ggplot(p4, aes(x = Data, y = Estado)) + 
+  geom_point(aes(colour = Gênero, shape = Gênero, size = Tocado), alpha = 0.6, stroke = 2) + 
+  geom_boxplot(alpha = 0.5) + 
+  scale_shape_manual(values = 0:15) +
+  #gghighlight(Artista == "EPMD", label_key = Álbum, unhighlighted_colour = "black") +  
+  facet_grid(Região~., scales = "free_y", space = "free_y") + 
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  labs(title=" ", subtitle="",y="Estado",x="Data", caption="", colour = "Gênero", shape = "Gênero", size = "Número de audições") +
+  #geom_xsideboxplot(aes(fill = Estado),alpha = 0.5) +
+  #geom_ysideboxplot(aes(fill = Estado),alpha = 0.5) + 
+  #stat_ellipse(geom="polygon", aes(fill = Estado), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+
+``` 
+Uma visão mais macro com o ano de lançamento e os gêneros.
+
+``` 
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(Lançado, "2019")) 
+#p3 <- p2 %>% filter(str_detect(Continente, "E. Meridional")) 
+
+#p3 <- p3 %>% filter(str_detect(Gênero, "Rock")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Estilo, "Funk")) #escolher artista
+#p3 <- subset(p3, Categoria!="Washington DC") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+p4 <- subset(p4,Classificação!="Extra") 
+p4 <- subset(p4,Classificação!="Outros") 
+
+p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Tocado > 3)
+
+ggplot(p4, aes(x = Data, y = Pontos)) + 
+  geom_point(aes(colour = Gênero, size = Tocado, shape = Tipo), alpha = 0.6) + 
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Gênero)) +  #method = lm ou loess
+  scale_shape_manual(values = 0:10) +
+  geom_line(aes(colour = Gênero), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = Gênero), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title=" ", subtitle="",y="Pontos",x="Data", caption="", shape = "Tipo de álbum", colour = "Gênero", fill = "Gênero", size = "Número de audições") +
+  geom_xsideboxplot(aes(fill = Gênero),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Gênero),alpha = 0.5) + #
+  stat_ellipse(geom="polygon", aes(fill = Gênero), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+``` 
+Ou ainda por país.
+
+``` 
+p2 <- Data
+p3 <- p2 %>% filter(str_detect(Lançado, "2021")) 
+#p3 <- p3 %>% filter(str_detect(Continente, "América")) 
+#p3 <- subset(p3, Coletivo!="Vários") #retirar artista
+
+#p3 <- p3 %>% filter(str_detect(País, "Rock")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Estilo, "Funk")) #escolher artista
+#p3 <- subset(p3, Categoria!="Washington DC") #retirar artista
+#p3 <- subset(p3, Região!="1") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+p4 <- subset(p4,Classificação!="Extra") 
+p4 <- subset(p4,Classificação!="Outros") 
+
+p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Tocado > 2)
+
+ggplot(p4, aes(x = Data, y = Pontos)) + 
+  geom_point(aes(colour = País, size = Tocado, shape = Tipo), alpha = 0.6) + 
+  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = País)) +  #method = lm ou loess
+  scale_shape_manual(values = 0:10) +
+  geom_line(aes(colour = País), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_label_repel(aes(label = Álbum, colour = País), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
+  labs(title=" ", subtitle="",y="Pontos",x="Data", caption="", shape = "Tipo de álbum", colour = "País", fill = "País", size = "Número de audições") +
+  geom_xsideboxplot(aes(fill = País),alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = País),alpha = 0.5) + #
+  stat_ellipse(geom="polygon", aes(fill = País), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+
+``` 
+Voltando para ver o cenário local, agora com a média.
+
+``` 
+p2 <- Data
+#p3 <- p2 %>% filter(str_detect(Continente, "África")) 
+p3 <- p2 %>% filter(str_detect(Categoria, "Indie Rock"))
+p3 <- subset(p3, Coletivo!="Vários") #retirar artista
+#p3 <- subset(p3, Estado!="Não Sei") #retirar artista
+
+#p3 <- p3 %>% filter(str_detect(Raiz, "African Music")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(País, "Sul")) #escolher artista
+#p3 <- subset(p3, Região!="6") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Ranking < 500)
+
+ggplot(p4, aes(x = Data, y = País)) + 
+  geom_point(aes(colour = Subgênero, shape = Subgênero, size = Tocado), alpha = 0.6, stroke = 2) + 
+  geom_boxplot(alpha = 0.5) + 
+  scale_shape_manual(values = 0:50) +
+  #gghighlight(Artista == "The Beatles", label_key = Álbum, unhighlighted_colour = "black") +  
+  facet_grid(Continente~., scales = "free_y", space = "free_y") + 
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  labs(title=" ", subtitle="",y="País",x="Data", caption="", colour = "Subgênero", fill = "Subgênero", size = "Número de audições") +
+  #geom_xsidedensity(aes(y = after_stat(count/max(count)*5), group = Subgênero, fill = Subgênero),alpha = 0.5, size = 1, position = "stack") +
+  #stat_ellipse(geom="polygon", aes(fill = País), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+``` 
+Ou gênero, ainda com a média.
+
+``` 
+p2 <- Data
+#p3 <- p2
+p3 <- p2 %>% filter(str_detect(Estado, "Bahia")) 
+#p3 <- p2 %>% filter(str_detect(País, "Japão")) 
+
+p3 <- p3 %>% filter(str_detect(Gênero, "MPB")) 
+#p3 <- rbind(p3,p4)
+#p3 <- p3 %>% filter(str_detect(Região, "Sul")) #escolher artista
+#p3 <- subset(p3, Região!="6") #retirar artista
+p3<-unique(p3)
+
+p4 <- p3
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Ranking < 500)
+
+ggplot(p4, aes(x = Data, y = Subgênero)) + 
+  geom_point(aes(colour = Língua, shape = Língua, size = Tocado), alpha = 0.6, stroke = 2) + 
+  geom_boxplot(alpha = 0.2) + 
+  scale_shape_manual(values = 0:50) +
+  #gghighlight(Língua == "Italiano", label_key = Álbum, unhighlighted_colour = "black") +  
+  facet_grid(Categoria~., scales = "free_y", space = "free_y") + 
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  #geom_xsidedensity(aes(y = after_stat(count/max(count)*5), group = Língua, fill = Língua),alpha = 0.5, size = 1, position = "stack") +
+  labs(title=" ", subtitle="",y="Subgênero",x="Data", caption="", colour = "Idioma", fill = "Idioma", shape = "Idioma", size = "Número de audições") +
+  #stat_ellipse(geom="polygon", aes(fill = Subgênero), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+``` 
+Ou artistas
+
+``` 
+p2 <- Data
+#p3 <- p2
+p3 <- p2 %>% filter(str_detect(Categoria, "Heavy Metal")) 
+#p3 <- p2 %>% filter(str_detect(Tag, "10 Pop")) 
+
+p3 <- p3 %>% filter(str_detect(Subcontinente, "Latin")) 
+#p3 <- p3 %>% filter(str_detect(Sexo, "Feminino")) #escolhe
+#p4 <- p3 %>% filter(str_detect(Sexo, "Ambos")) #escolhe
+#p3 <- rbind(p3,p4)
+
+p3<-unique(p3)
+p3 <- subset(p3, Artista_principal!="6") #retirar artista
+
+p4 <- p3
+p4 <- subset(p4,Artista_principal!="Parceria") 
+#p4 <- subset(p4,Classificação!="Extra") 
+#p4 <- subset(p4,Classificação!="Outros") 
+
+#p4 <- p4 %>%  subset(Nota > 0.6)
+#p4 <- p4 %>%  subset(Lançado > 1998)
+
+ggplot(p4, aes(x = Data, y = Artista_principal)) + 
+  geom_point(aes(colour = Subgênero, shape = Subgênero, size = Tocado), alpha = 0.7, stroke = 2) + 
+  geom_boxplot(alpha = 0.5) + 
+  scale_shape_manual(values = 0:50) +
+  #gghighlight(Língua == "Italiano", label_key = Álbum, unhighlighted_colour = "black") +  
+  #facet_grid(.~Década, scales = "free_x", space = "free_x") + 
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  #geom_xsidedensity(aes(y = after_stat(count/max(count)*3), group = Subgênero, fill = Subgênero),alpha = 0.5, size = 1, position = "stack") +
+  #geom_ysideboxplot(aes(group = Subgênero, fill = Subgênero), alpha = 0.5, size = 0.5) +
+  labs(title=" ", subtitle="",y="Artista",x="Data", caption="", colour = "Subgênero", fill = "Subgênero", shape = "Subgênero", size = "Número de audições") +
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+``` 
+ 
 ## Gráficos investigatórios.
 Fazer gráficos pode ser uma ótima forma de entender o conjunto de dados que temos em mãos. Por exemplo, quais são os gêneros mais comuns que eu registrei? Vamos ver um boxplot deles.
 
@@ -116,7 +525,7 @@ library("ggbiplot")
 #install_github("vqv/ggbiplot")
 ```
 
-Agora vamos ver como os países explicam os gêneros. Quais países apresentam o maior poder de explicação para os gêneros catalogados. Primeiro vamos separar as tabelas.
+Agora vamos ver como os Gêneroes explicam os gêneros. Quais Gêneroes apresentam o maior poder de explicação para os gêneros catalogados. Primeiro vamos separar as tabelas.
 
 ```
 p2 <- planilhatotal
@@ -293,10 +702,10 @@ p2 <- subset(p2, Subcontinente == "Am. Latina")
 #p2 <- subset(p2, Continente == "África")
 p2 <- p2 %>%  subset(Nota > 0.5)
 
-p2 <- subset(p2,País!="Brasil")
+p2 <- subset(p2,Gênero!="Brasil")
 #p2 <- subset(p2,Subcontinente!="Ilhas Britânicas") 
 ```
-Agora o gráfico seprando os países por gênero musical ao longo do tempo. O gráfico lateral superior mostra a proporção de gênero e laterial a direita um boxplot dos pontos:
+Agora o gráfico seprando os Gêneroes por gênero musical ao longo do tempo. O gráfico lateral superior mostra a proporção de gênero e laterial a direita um boxplot dos pontos:
 ```
 p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   geom_point(aes(size = Tocado), alpha = 0.7) +
@@ -310,23 +719,23 @@ p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   labs(title = "Distibuição dos pontos por raíz musical e continente") + theme_classic()
 #ggsave("9.Distr_Ponto_ano_gen_subcontin_AméricaSax.png",width = 15, height = 8, dpi = 600)
 ```
-E um gráfico mostrando os países por subcontinente.
+E um gráfico mostrando os Gêneroes por subcontinente.
 ```
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
+p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   geom_point(aes(size = Tocado), alpha = 0.7) +
   #geom_smooth(aes(color = NULL)) +
   scale_size(range = c(5, 18), name = "Número de audições") +
   #geom_ysideboxplot(alpha = 0.5,size = 1) +
   #theme_tq() +
   geom_xsidedensity(aes(y = after_stat(count),
-      color = País),alpha = 0.5,size = 1, position = "stack") +
+      color = Gênero),alpha = 0.5,size = 1, position = "stack") +
   facet_grid(cols = vars(Década), scales = "free_x") +
   labs(title = "Distibuição dos pontos por raíz musical e continente") + theme_classic()
 #ggsave("9.Distr_Ponto_ano_pais_subcontin_Américasax.png",width = 15, height = 8, dpi = 600)
 ```
 
 ### Escala 3
-Também podemos ver em uma escala de país. Os principais serão listadas abaixo:
+Também podemos ver em uma escala de Gênero. Os principais serão listadas abaixo:
 - Brasil;
 - EUA;
 - Inglaterra;
@@ -341,7 +750,7 @@ p2 <- subset(p2, Classificação == "Principal")
 p2 <- subset(p2, Classificação!="Extra") 
 p2 <- subset(p2, Coletivo!="Vários") 
 
-p2 <- subset(p2, País == "Estados Unidos")
+p2 <- subset(p2, Gênero == "Estados Unidos")
 #p2 <- subset(p2, Estado == "California")
 p2 <- subset(p2, Gênero == "Rock")
 
@@ -392,15 +801,15 @@ p2 <- subset(p2, Gênero == "Pop Music")
 ```
 Primeiro, vamos ver os gêneros:
 ```
-p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = País)) +
+p2 %>% ggplot(aes(x = Lançado, y = Pontos, color = Gênero)) +
   geom_point(aes(size = Soma), alpha = 0.7) +
   geom_smooth(aes(color = NULL)) +
   geom_ysideboxplot(alpha = 0.5,size = 1) +
   geom_xsidedensity(aes(y = after_stat(count),
-      color = País),alpha = 0.5,size = 1, position = "stack") +
+      color = Gênero),alpha = 0.5,size = 1, position = "stack") +
   theme_tq() +
-  #facet_grid(rows = vars(País), scales = "free_x") +
-  labs(title = "Distibuição dos pontos por gênero e países")
+  #facet_grid(rows = vars(Gênero), scales = "free_x") +
+  labs(title = "Distibuição dos pontos por gênero e Gêneroes")
 #ggsave("9.Distr_Ponto_ano_gen_Br.png",width = 15, height = 8, dpi = 600)
 ```
 Agora vamos ver a contribuição dos estados por região ou estado (como Austrália).
@@ -537,9 +946,9 @@ ggplot(p2, aes(Gravação, Pontos, fill = Classificação)) +
 ```
 Fica bem fácil ver que em a proporção de álbuns da categria principal é maior para álbuns de estúdio, enquanto para lives a categiria princioal é extras. E que álbum é o tipo de disco mais comum quando olha-se disco de estúdios. Se trocarmos para Show, percena que é a forma principal para Live. 
 
-O mesmo pode ser feito para evidenciar algum país ou gênero dentro de um todo. Vamos selecionar uma planilha com continente, país e raiz de gênero musical.
+O mesmo pode ser feito para evidenciar algum Gênero ou gênero dentro de um todo. Vamos selecionar uma planilha com continente, Gênero e raiz de gênero musical.
 ```
-p2 <- reshape2::dcast(planilhatotal, Continente + País + Raiz ~ Classificação, value.var = "Pontos", fun.aggregate = sum)
+p2 <- reshape2::dcast(planilhatotal, Continente + Gênero + Raiz ~ Classificação, value.var = "Pontos", fun.aggregate = sum)
 Pontos <- apply(p2[, 4:5], 1, sum)
 p2 <- data.frame (p2, Pontos)
 ```
@@ -548,7 +957,7 @@ E vamos plotar em gráfico e pedir para evidenciar o Brasil:
 ggplot(p2, aes(Raiz, Pontos, fill = Continente)) + 
   geom_col(position = "fill", width = 0.85, 
     color = "black", size = 1,
-    mapping = aes(linetype = País == "Brasil")) 
+    mapping = aes(linetype = Gênero == "Brasil")) 
 #ggsave("12.Barra_pais_Br.png",width = 14, height = 6, dpi = 300)
 ```
 Com esse gráfico fica evidente que na música latina o Brasil é o maior contribuidor e que este ritmo é muito associado ao continente americano, por exemplo.

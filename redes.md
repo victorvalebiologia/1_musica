@@ -18,7 +18,6 @@ Agora baixar e ler alguns pacotes básicos.
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, ggrepel, graphics,lubridate, gghighlight) #devtools, 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 ```
 Agora vamos adicionar a planilha.
@@ -36,24 +35,273 @@ E filtrar ela.
 ```
 planilhatotal <- subset(planilhatotal, !is.na(Lançado)) #tirar n/a da ano
 planilhatotal <- subset(planilhatotal, !is.na(Pontos)) #tirar n/a da pontos
+```
+pacman::p_load(igraph,miniCRAN,magrittr,keyplayer,dplyr,visNetwork,DT )
+
 p2 <- planilhatotal
 p2 <- subset(p2, !is.na(Lançado))
-p2[is.na(p2)] <- 1
 
-p3 <- subset(p2, !is.na(Mês))
-p3 <- subset(p2, !is.na(Dia))
+p2 <- subset(p2,Classificação!="Extra") 
+p2 <- subset(p2,Estado!="Não Sei") 
+p2 <- subset(p2,Coletivo!="Vários")
 
-Data <- p3 %>% 
-  select(Lançado,Mês,Dia) %>% 
-  mutate(Data = make_date(Lançado,Mês,Dia))
-Data <- data.frame(p3,Data)
+p2 <- subset(p2, !is.na(Estado))
+p2 <- subset(p2, !is.na(País))
 
+
+p3 <- p2
+
+p3 <- subset(p2, País == "Brasil")
+p3 <- subset(p2, Estado == "Espírito Santo")
 ```
 
-## Acumulação
-Primeiro a data:
+```
+local<-reshape2::dcast(p3, Estado ~ Estado, value.var = "Soma", fun.aggregate = sum)
+local <- data.frame(local, row.names=1)
+
+g <- makeDepGraph(local, suggests = FALSE)
+
+library(??feather)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Hierarchical cluster analysis on famous data sets - enhanced with the dendextend package
+#Tal Galili
+#2022-07-04
+#Seleção de dados
+
+```
+pacman::p_load(ggplot2, ggrepel, graphics,lubridate, BiodiversityR)
+pacman::p_load(igraph, circlize, gplots, heatmaply, dendlist, hclust)
+
+p2 <- planilhatotal
+p2 <- subset(p2, !is.na(Lançado))
+
+p2 <- subset(p2,Classificação!="Extra") 
+p2 <- subset(p2,Estado!="Não Sei") 
+p2 <- subset(p2,Coletivo!="Vários")
+
+p2 <- subset(p2, !is.na(Estado))
+p2 <- subset(p2, !is.na(País))
+
+
+p3 <- p2
+
+p3 <- subset(p2, País == "Brasil")
+p3 <- subset(p2, Estado == "Espírito Santo")
+```
+
+```
+local<-reshape2::dcast(p3, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = sum)
+local <- data.frame(local, row.names=1)
+#local$Estado <- NULL
+
+abund<-rowSums(local) #abunância por faixa
+abund<-log(abund)
+S <- specnumber(local)
+S <- log(S)
+H <- diversity(local, index = "shannon")
+Simp <- diversity(local, index = "simpson")
+
+
+local<-reshape2::dcast(p2, Estado + Continente ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
+local<-data.frame(S, abund, H, Simp, local)
+local <- select(local, S, abund, H, Simp, Continente)
+local <- local %>%   subset(S > 1)
+
+#local<- p3[, c("Pontos","Soma","Tocado","Nota","Raiz")]
+
+species_labels <- local[,5] #número da coluna de nome
+library(colorspace) # get nice colors
+species_col <- rev(rainbow_hcl(5))
+
+#local<- p3[, c("Pontos","Soma","Tocado","Nota","Álbum")]
+local2 <- local[,-5]
+
+pairs(local, col = species_col,
+      lower.panel = NULL,
+       cex.labels=2, pch=19, cex = 1.2)
+
+par(xpd = TRUE)
+legend("bottomleft", legend = as.vector(unique(species_labels)),  
+    fill= unique(species_col))
+```
+Vemos aqui a interação dos dados
+```
+par(las = 1, mar = c(4.5, 3, 3, 2) + 0.1, cex = .8)
+MASS::parcoord(local2, col = species_col, var.label = TRUE, lwd = 2)
+
+par(xpd = TRUE)
+legend("bottomleft", legend = as.vector(unique(species_labels)),  
+    fill= unique(species_col))
+par(xpd = NA)    
+
+#dev.off()
+```
+Agora plotar.
+```
+d_iris <- dist(local2) # method="man" # is a bit better
+hc_iris <- hclust(d_iris, method = "complete")
+iris_species <- rev(levels(local[,5]))
+
+library(dendextend)
+dend <- as.dendrogram(hc_iris)
+dend <- rotate(dend, 1:21) #número de colunas.
+
+dend <- color_branches(dend, k=5) #, groupLabels=iris_species)
+
+labels_colors(dend) <-
+   rainbow_hcl(3)[sort_levels_values(
+      as.numeric(iris[,5])[order.dendrogram(dend)]
+   )]
+
+
+labels(dend) <- paste(as.character(local[,5])[order.dendrogram(dend)],
+                           "(",labels(dend),")", 
+                           sep = "")
+
+dend <- hang.dendrogram(dend,hang_height=0.1)
+
+dend <- assign_values_to_leaves_nodePar(dend, 0.5, "lab.cex")
+dend <- set(dend, "labels_cex", 0.5)
+
+par(mar = c(3,3,3,7))
+plot(dend, 
+     main = "Clustered", 
+     horiz =  TRUE,  nodePar = list(cex = .007))
+
+legend("bottomleft", legend = iris_species),  
+    fill = rainbow_hcl(3))
+
+```
+Mapa circular.
+```
+
+par(mar = rep(0,4))
+circlize_dendrogram(dend)
+
+```
+Mapa de calor agregado
+```
+some_col_func <- function(n) rev(colorspace::heat_hcl(n, c = c(80, 30), l = c(30, 90), power = c(1/5, 1.5)))
+gplots::heatmap.2(as.matrix(local2), 
+          main = "Heatmap for the Iris data set",
+          srtCol = 20,
+          dendrogram = "row",
+          Rowv = dend,
+          Colv = "NA", # this to make sure the columns are not ordered
+          trace="none",          
+          margins =c(5,0.1),      
+          key.xlab = "Cm",
+          denscol = "grey",
+          density.info = "density",
+          RowSideColors = rev(labels_colors(dend)), # to add nice colored strips        
+          col = some_col_func
+         )
+```
+uma outra forma.
+```
+heatmaply::heatmaply(as.matrix(local2),
+          dendrogram = "row",
+          Rowv = dend)
+
+```
+Correlação das medidas de valores como média, single e outros.
+```
+hclust_methods <- c("ward.D", "single", "complete", "average", "mcquitty", 
+        "median", "centroid", "ward.D2")
+iris_dendlist <- dendlist()
+for(i in seq_along(hclust_methods)) {
+   hc_iris <- hclust(d_iris, method = hclust_methods[i])   
+   iris_dendlist <- dendlist(iris_dendlist, as.dendrogram(hc_iris))
+}
+names(iris_dendlist) <- hclust_methods
+iris_dendlist
+
+iris_dendlist_cor <- cor.dendlist(iris_dendlist)
+iris_dendlist_cor
+
+corrplot::corrplot(iris_dendlist_cor, "pie", "lower")
+
+iris_dendlist_cor_spearman <- cor.dendlist(iris_dendlist, method_coef = "spearman")
+corrplot::corrplot(iris_dendlist_cor_spearman, "pie", "lower")
+
+```
+Relação dos dados.
+```
+iris_dendlist %>% dendlist(which = c(1,8)) %>% ladderize %>% 
+   set("branches_k_color",) %>% 
+   # untangle(method = "step1side", k_seq = 3:20) %>%
+   # set("clear_branches") %>% #otherwise the single lines are not black, since they retain the previous color from the branches_k_color.
+   tanglegram(faster = TRUE) # (common_subtrees_color_branches = TRUE)
+
+```
+Considerando média
+```   
+iris_dendlist %>% dendlist(which = c(1,4)) %>% ladderize %>% 
+   set("branches_k_color", k=2) %>% 
+   # untangle(method = "step1side", k_seq = 3:20) %>%
+   tanglegram(faster = TRUE) # (common_subtrees_color_branches = TRUE)   
+```
+Relação com cores
+```
+iris_dendlist %>% dendlist(which = c(1,4)) %>% ladderize %>% 
+   # untangle(method = "step1side", k_seq = 3:20) %>%
+   set("rank_branches") %>%
+   tanglegram(common_subtrees_color_branches = TRUE)   
+```
+Número de sub-árvores
+```
+length(unique(common_subtrees_clusters(iris_dendlist[[1]], iris_dendlist[[4]]))[-1])
+```
+completo por média
+```
+iris_dendlist %>% dendlist(which = c(3,4)) %>% ladderize %>% 
+   untangle(method = "step1side", k_seq = 2:6) %>%
+   set("branches_k_color", k=10) %>% 
+   tanglegram(faster = TRUE) # (common_subtrees_color_branches = TRUE)
+```
+Seprando por análise
+```
+par(mfrow = c(4,2))
+for(i in 1:8) {
+   iris_dendlist[[i]] %>% set("branches_k_color", k=2) %>% plot(axes = FALSE, horiz = TRUE)
+   title(names(iris_dendlist)[i])
+}
+```
+
+
+
+
+
+
+
+
+
+#########################
 Vamos começar com uma análise de acumualção de dados. Podemos investigar a acumulação de:
 - Álbuns;
 - Discos;
@@ -199,7 +447,7 @@ p2 <- planilhatotal
 p2 <- subset(p2,!is.na(Lançado))
 p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2,Estado!="Não Sei") 
-p2 <- subset(p2,Estado!="Vários")
+p2 <- subset(p2,Coletivo!="Vários")
 
 p2 <- subset(p2, !is.na(Estado))
 p2 <- subset(p2, !is.na(País))
@@ -219,7 +467,7 @@ p2 <- rbind(p3,p4)
 ```
 Agora a tabela a ser analisada:
 ```
-local<-reshape2::dcast(p2, Estado ~ Álbum, value.var = "Soma", fun.aggregate = sum)
+local<-reshape2::dcast(p2, País ~ Álbum, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 ```
 Agora vamos ver os índices de diversidade. São eles:
@@ -241,13 +489,13 @@ Vamos colocar isso em gráfico para ficar mais fácil a visualização. Primeiro
 - Observar se a variável analisada está no reshape2 da planilha;
 - Se existe algum filtro em subset.
 ```
-local<-reshape2::dcast(p2, Estado + País ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
+local<-reshape2::dcast(p2, País + Subcontinente ~ Álbum, value.var = "Soma", fun.aggregate = sum) 
 local<-data.frame(S, local, H, simp, J, abund)
-local <- local %>%   subset(S > 34)
+local <- local %>%   subset(S > 29)
 
-local <- local %>%  subset(S %in% 16:34)  
+local <- local %>%  subset(S %in% 15:29)  
 
-local <- local %>%  subset(S %in% 7:15)  
+local <- local %>%  subset(S %in% 5:14)  
   
 ```
 Agora vamos plotar, mas preste atenção em:
@@ -265,14 +513,14 @@ Ainda, para idiomas:
 - diminuir o limite de 20 para 5.
 
 ```
-theplot <- ggplot(local, aes(x = reorder(Estado, S), y = S)) +
+theplot <- ggplot(local, aes(x = reorder(País, S), y = S)) +
   #geom_point(aes(size=abund, colour = Subcontinente), alpha = 0.85) + scale_size_binned(range = c(.1, 16)) +
-  geom_col(aes(fill = País), alpha = 0.65) + 
+  geom_col(aes(fill = Subcontinente), alpha = 0.65) + 
   
-  geom_label_repel(aes(y = S, x = Estado, label = S), position = position_stack(vjust = 0.99), size=3.5, alpha= 0.85) +
+  geom_label_repel(aes(y = S, x = País, label = S), position = position_stack(vjust = 0.99), size=3.5, alpha= 0.85) +
   #geom_text_repel(aes(y = S, x = Estado, label = abund), position = position_dodge(width = 0), vjust=1.75, size=3, colour = "red") +
   
-  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="Estado", caption="2022_12_15", size = "Número de faixas", fill = "País") +
+  labs(title="Ranking de importância", subtitle="", y="Número de álbuns", x="País", caption="2022_09_06", size = "Número de faixas", fill = "Subcontinente") +
   
   #scale_y_continuous(breaks = c(0, 50, 100, 150, 200, 250, 300, 350, 400)) 
   theme_classic() +
@@ -282,7 +530,7 @@ theplot <- ggplot(local, aes(x = reorder(Estado, S), y = S)) +
 theplot  
   
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_12_15_est2", plot = theplot)
+       device = "png", filename = "2022_08_03_país3", plot = theplot)
      
 
 ```
@@ -293,13 +541,12 @@ pacman::p_load(forcats, iNEXT,tidyr,tibble)
 pacman::p_load(CRAN,iNEXT) #,devtools, tidyverse)
 
 p2 <- planilhatotal
-#p2 <- subset(p2,Coletivo!="Vários") 
+p2 <- subset(p2,Coletivo!="Vários") 
 p2 <- subset(p2,Classificação!="Extra") 
 p2 <- subset(p2, !is.na(Lançado))
 
+p2 <- subset(p2, !is.na(Aglomerado))
 p2 <- subset(p2, !is.na(Artista_principal))
-p2 <- subset(p2,Artista_principal!="Parceria") 
-#p2 <- subset(p2, !is.na(Aglomerado))
 p2 <- subset(p2, !is.na(Década))
 p2 <- subset(p2, !is.na(Origem))
 p2 <- subset(p2, !is.na(Fonte))
@@ -308,7 +555,6 @@ p2 <- subset(p2, !is.na(País))
 p2 <- subset(p2, País == "Canadá")
 p2 <- subset(p2, Continente == "Europa")
 p2 <- subset(p2, Subcontinente == "E. Meridional")
-
 
 local<-reshape2::dcast(p2, Artista_principal ~ Álbum, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
@@ -341,7 +587,7 @@ R <- R %>%
 R  
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_12_15_artista2", plot = R)
+       device = "png", filename = "2022_08_03_artista2", plot = R)
        
 
 ```
@@ -355,14 +601,14 @@ p2 <- subset(p2, !is.na(Origem))
 p2 <- subset(p2, !is.na(Conjunto))
 p2 <- subset(p2, !is.na(Aglomerado))
 
-local<-reshape2::dcast(p2, Artista ~ Aglomerado, value.var = "Soma", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Artista ~ Origem, value.var = "Soma", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 # Mude o q para 1 para comparar a diversidade de Shannon e para 2 para Simpson
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 8500, length.out=20))
+             size = seq(0, 30500, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -376,7 +622,7 @@ R <- ggiNEXT(out, type = 1) +
 R
 
 ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_12_15_label", plot = R)
+       device = "png", filename = "2022_08_03_fonte", plot = R)
 
 ```
 ## Cluster
@@ -394,17 +640,14 @@ p2 <- subset(p2,Estado!="Não Sei")
 p2 <- subset(p2, !is.na(Estado))
 p2 <- subset(p2, !is.na(Subgênero))
 
-#p2 <- subset(p2, País == "Brasil")
-#p2 <- subset(p2, Subcontinente == "Am. Anglo-Saxônica")
-#p2 <- subset(p2, Continente == "Europa")
+#p2 <- subset(p2, Continente == "América")
 
 local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = NULL) #sum ou NULL
 local=data.frame(local, row.names=1)
 S <- specnumber(local)
 #local[local>0]<-1 #tansformar em presença e ausência
 local<-data.frame(S, local) 
-local <- local %>%   subset(S > 4)
-local$S <- NULL
+local <- local %>%   subset(S > 9)
 
 dend <- local %>% dist %>%
   hclust %>% as.dendrogram %>%
@@ -416,134 +659,8 @@ ggd1 <- as.ggdend(dend) #,type = "triangle")
 R<-ggplot(ggd1, horiz = TRUE) #+ scale_y_reverse(expand = c(0.2, 0)) + coord_polar(theta = "x")
 R
 
-as.hclust(dend)
-
-
-ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_12_15_clusterestsubg", plot = R)
-
-``` 
-Outra forma de plotar. 
-``` 
-species_labels <- local #número da coluna de nome
-library(colorspace) # get nice colors
-species_col <- rev(rainbow_hcl(5))
-
-plot(dend, 
-     main = "Clustered", 
-     horiz =  TRUE,  nodePar = list(cex = .007))
-
-``` 
-Incluindo mapas de calor.
-``` 
-some_col_func <- function(n) rev(colorspace::heat_hcl(n, c = c(80, 30), l = c(30, 90), power = c(1/5, 1.5)))
-gplots::heatmap.2(as.matrix(local), 
-          main = "Mapa de calor",
-          srtCol = 20,
-          dendrogram = "row",
-          Rowv = dend,
-          Colv = "NA", # this to make sure the columns are not ordered
-          trace="none",          
-          margins =c(5,0.1),      
-          key.xlab = "Cm",
-          denscol = "grey",
-          density.info = "density",
-          RowSideColors = rev(labels_colors(dend)), # to add nice colored strips        
-          col = some_col_func
-         )
-``` 
-
-## PCA
-
-
-
-
-``` 
-pacman::p_load(ggfortify, cluster)
-
-p2 <- planilhatotal
-p2 <- subset(p2,Classificação!="Extra") 
-#p2 <- subset(p2, !is.na(País))
-p2 <- subset(p2,Coletivo!="Vários") 
-p2 <- subset(p2,Estado!="Não Sei") 
-#p2 <- subset(p2, !is.na(Estado))
-p2 <- subset(p2, !is.na(Subgênero))
-
-#p2 <- subset(p2, Continente == "Europa")
-#p2 <- subset(p2, Subcontinente == "Am. Latina")
-p2 <- p2 %>% filter(str_detect(Subcontinente, "Latin"))
-#p2 <- subset(p2, Raiz == "Anglo-American Music")
-p2 <- p2 %>% filter(str_detect(Raiz, "Ameri"))
-#p2 <- subset(p2, Gênero == "Rock")
-#p2 <- subset(p2, País == "Brasil")
-#p2 <- subset(p2, Década == "1990")
-p2 <- subset(p2, País!="Brasil")
-
-#p2 <- p2 %>%  subset(Ranking < 200)
-
-local<-reshape2::dcast(p2, Estado ~ Subgênero, value.var = "Soma", fun.aggregate = sum) #sum ou NULL
-local=data.frame(local, row.names=1)
-
-pca_res <- prcomp(local, scale. = TRUE)
-#autoplot(pca_res)
-
-local<-reshape2::dcast(p2, Estado + País ~ Subgênero, value.var = "Soma", fun.aggregate = sum) #sum ou NULL
-#autoplot(pca_res, data = local, colour = 'País', frame = TRUE)
-#autoplot(pca_res, data = local, colour = 'Subontinente', label = TRUE, label.size = 3,  loadings = TRUE)
-pca <-autoplot(pca_res, data = local, colour = 'País', label = TRUE, label.size = 4, 
-frame = TRUE, frame.type = NULL, frame.color = 'País', #ou frame.type = 't'
-         loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
-         theme_classic() #
-         #stat_ellipse(geom="polygon", aes(fill = Subcontinente), alpha = 0.2, show.legend = FALSE,level = 0.95)        
-
-pca
-
 #ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "2022_12_15_PCA", plot = pca)
-``` 
-
-## Gráfico de núvens
-
-
-
-
-``` 
-pacman::p_load(readr, tm, dplyr, wordcloud, wesanderson)
-
-words <- p2 %>% 
-  select(Álbum)
-str(words)  
-words <- as.character(words)       
-
-word.corpus <- Corpus(VectorSource(words)) 
-
-word.corpus<-word.corpus %>%
-  tm_map(removePunctuation) %>% ##eliminar pontuacao
-  tm_map(removeNumbers) %>% #sem numeros
-  tm_map(stripWhitespace) #sem espacos
-  
-word.corpus<-word.corpus %>%
-  tm_map(tolower) %>% ##make all words lowercase
-  tm_map(removeWords, stopwords("SMART"))  #"por" para português "en" inglês
-  
-word.corpus <- tm_map(word.corpus, removeWords, c("the", "vol")) 
-    
-word.corpus <- tm_map(word.corpus, stemDocument)  
-
-word.counts <- as.matrix(TermDocumentMatrix(word.corpus))
-word.freq <- sort(rowSums(word.counts), decreasing = TRUE)
-head(word.freq)
-         
-set.seed(32)  #be sure to set the seed if you want to reproduce the same again
-
-wordcloud(words = names(word.freq), freq = word.freq, scale = c(4, 0.3), max.words = 100, 
-    random.order = FALSE, color = wes_palette("Darjeeling1"), rot.per = 0.7)    
-
-#wordcloud(words = names(word.freq), freq = word.freq, scale = c(3, 0.5), max.words = 100, 
-    random.order = TRUE)         
-    
-#wordcloud(words = names(word.freq), freq = word.freq, scale = c(4, 0.3), max.words = 100, 
-    random.order = TRUE, color = wes_palette("Darjeeling1"))    
+       device = "png", filename = "2022_08_3_clusterestasubg", plot = R)
 
 ``` 
 

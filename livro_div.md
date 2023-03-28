@@ -378,7 +378,7 @@ p2 <- subset(p2, !is.na(Subgênero))
 
 #p2 <- subset(p2, País == "Brasil")
 
-local<-reshape2::dcast(p2, País ~ Subgênero,value.var = "Página_Total", fun.aggregate = sum)
+local<-reshape2::dcast(p2, País ~ Subgênero,value.var = "Página_Total", fun.aggregate = NULL)
 local=data.frame(local, row.names=1)
 S <- specnumber(local)
 #local[local>0]<-1 #tansformar em presença e ausência
@@ -452,25 +452,23 @@ iris_dendlist %>% dendlist(which = c(1,8)) %>% ladderize %>%
 pacman::p_load(ggfortify, cluster)
 
 p2 <- planilhatotal
-
 p2 <- subset(p2,!is.na(Ano_publicação))
-
 p2 <- subset(p2, !is.na(País))
 p2 <- subset(p2, !is.na(Subgênero))
 
-#p2 <- subset(p2, País == "Brasil")
+p2 <- subset(p2, Continente == "Ásia")
 
-local<-reshape2::dcast(p2, País ~ Subgênero,value.var = "Página_Total", fun.aggregate = sum)
+local<-reshape2::dcast(p2, País ~ Esfera,value.var = "Página_Total", fun.aggregate = NULL)
 local=data.frame(local, row.names=1)
 
 pca_res <- prcomp(local, scale. = TRUE)
 #autoplot(pca_res)
 
-local<-reshape2::dcast(p2, País + Continente ~ Subgênero,value.var = "Página_Total", fun.aggregate = sum)
+local<-reshape2::dcast(p2, País + Região ~ Esfera,value.var = "Página_Total", fun.aggregate = sum)
 #autoplot(pca_res, data = local, colour = 'País', frame = TRUE)
-#autoplot(pca_res, data = local, colour = 'Continente', label = TRUE, label.size = 3,  loadings = TRUE)
-pca <-autoplot(pca_res, data = local, colour = 'Continente', label = TRUE, label.size = 4, 
-         frame = TRUE, frame.type = 't', frame.color = 'Continente',
+#autoplot(pca_res, data = local, colour = 'Região', label = TRUE, label.size = 3,  loadings = TRUE)
+pca <-autoplot(pca_res, data = local, colour = 'Região', label = TRUE, label.size = 4, 
+         frame = TRUE, frame.type = 't', frame.color = 'Região',
          loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
          theme_classic() #+ 
          #stat_ellipse(geom="polygon", aes(fill = Região), alpha = 0.2, show.legend = FALSE,level = 0.95)        
@@ -478,7 +476,7 @@ pca <-autoplot(pca_res, data = local, colour = 'Continente', label = TRUE, label
 pca
 
 ggsave(path = "/home/user/Área de Trabalho/Livros", width = 20, height = 10, 
-       device = "png", filename = "2022_10_15_PCA", plot = pca)
+       device = "png", filename = "2022_11_12_PCA_esfer", plot = pca)
        
 ``` 
 Um mais simples, sem a elipse
