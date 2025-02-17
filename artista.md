@@ -13,7 +13,9 @@ Primeiro, vamos indicar as pastas corretas.
 
 ```
 getwd()
-setwd("/home/valev/Área de Trabalho/R/musica/R") 
+#setwd("/home/valev/Área de Trabalho/R/musica/R") 
+setwd("/home/kaetes/Área de trabalho/R") 
+
 ```
 
 Agora baixar e ler alguns pacotes básicos.
@@ -85,92 +87,96 @@ Agora, considerando a localização ou o gênero relacionado ao artista com outr
 ``` 
 pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
-p2 <- Data
-p2 <- tidyr::separate_rows(p2, Artista_principal, sep = "/")
-#p2 <- tidyr::separate_rows(p2, Gênero, sep = "/")
+# Preparação dos dados
 
-p3 <- p2 %>% filter(str_detect(Estado, "Heartfordshire")) #^Blues$"
-#p3 <- p3 %>% filter(str_detect(Gênero, "Rock")) #selecionar
-#p3 <- p3 %>% filter(!str_detect(Gênero, "Rock")) #retirar
+p3 <- Data %>% 
+  tidyr::separate_rows(Artista_principal, sep = "/") %>% 
+  filter(str_detect(Gênero, "Samba") )%>% #,   # Filtrar por país
+         #str_detect(Gênero, "Rock"),     # Filtrar por gênero Rock
+         #Artista_principal != "Shakira") %>%  # Remover Shakira
+  unique() %>% 
+  filter(!Classificação %in% c("Extra", "Outros"), Nota > 0.74)  # Remover categorias indesejadas e aplicar corte de Nota
 
-#p3 <- p3 %>% filter(str_detect(País, "Inglaterra")) 
-#p3 <- p3 %>% filter(Década %in% c("1950", "1960", "1970")) #, "1970"
-
-#p3 <- rbind(p3,p4)
-#p3 <- p3 %>% filter(str_detect(Categoria, "Alternative Rock")) #escolher artista
-#p3 <- subset(p3, Raiz!="Pop Music") #retirar artista
-
-p3<-unique(p3)
-p4 <- p3
-p4 <- subset(p4,Classificação!="Extra") 
-p4 <- subset(p4,Classificação!="Outros") 
-
-p4 <- p4 %>%  subset(Nota > 0.74)
-#p4 <- p4 %>%  subset(Tocado > 3)
-
-ggplot(p4, aes(x = Data, y = Pontos)) + 
+# Criar gráfico
+ggplot(p3, aes(x = Data, y = Pontos)) + 
+  # Pontos e linhas
   geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
-  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
+  geom_line(aes(colour = Artista_principal), linetype = 2, alpha = 0.3) +
+  geom_smooth(method = lm, se = FALSE, aes(colour = Artista_principal), alpha = 0.6) +  
+
+  # Elementos adicionais
   scale_shape_manual(values = 0:10) +
-  geom_line(aes(colour = Artista_principal), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
-  #geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + ggplot(p4, aes(x = Data, y = Pontos)) + 
-  #geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
-  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
-  scale_shape_manual(values = 0:10) +
-  geom_line(aes(colour = Artista_principal), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
-  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) +
-  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
   scale_size(range = c(5, 18), name = "Número de audições") +
-  geom_label_repel(aes(label = Álbum, colour = Artista_principal), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
-  geom_xsideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
-  geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) + #
-  stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
-  labs(title=" ", subtitle="",y="Pontos",x="Ano de lançamento", caption="", shape = "Tipo de álbum", 
-  colour = "Artista principal", fill = "Artista principal", size = "Número de audições") +
-  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14), legend.position = "none") +
-  theme_minimal()
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) +
+  geom_label_repel(aes(label = Álbum, colour = Artista_principal), 
+                   size = 2.5, box.padding = 0.35, point.padding = 0.75, 
+                   segment.color = 'grey50') +
+
+  # Boxplots laterais
+  geom_xsideboxplot(aes(fill = Artista_principal), alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = Artista_principal), alpha = 0.5) +
+
+  # Elipses
+  stat_ellipse(geom = "polygon", aes(fill = Artista_principal), alpha = 0.2, level = 0.1) + 
+
+  # Personalização
+  labs(title = " ", subtitle = "", y = "Pontos", x = "Ano de lançamento", caption = "",
+       shape = "Tipo de álbum", colour = "Artista principal", 
+       fill = "Artista principal", size = "Número de audições") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 18), 
+        axis.text = element_text(size = 14), 
+        legend.position = "right") +
+  guides(colour = guide_legend(ncol = 2), 
+         fill = guide_legend(ncol = 2), 
+         size = guide_legend(ncol = 2))
+
 
 ``` 
 Uma visão mais macro com o ano de lançamento e os gêneros.
 
 ``` 
-p2 <- Data
-p2 <- tidyr::separate_rows(p2, País, sep = "/")
+p3 <- Data %>% 
+  tidyr::separate_rows(Artista_principal, sep = "/") %>% 
+  filter(str_detect(Lançado, "1988") )%>% #,   # Filtrar por país
+         #str_detect(Gênero, "Rock"),     # Filtrar por gênero Rock
+         #Artista_principal != "Shakira") %>%  # Remover Shakira
+  unique() %>% 
+  filter(!Classificação %in% c("Extra", "Outros"), Nota > 0.74)  # Remover categorias indesejadas e aplicar corte de Nota
 
-p3 <- p2 %>% filter(str_detect(Lançado, "1969")) 
-#p3 <- p3 %>% filter(str_detect(País, "Brasil")) 
 
-#p3 <- p3 %>% filter(str_detect(Gênero, "Rock")) 
-#p3 <- rbind(p3,p4)
-#p3 <- p3 %>% filter(str_detect(Estilo, "Funk")) #escolher artista
-#p3 <- subset(p3, Categoria!="Washington DC") #retirar artista
-
-p3 <- subset(p3, Gênero!="6") #retirar artista
-p3<-unique(p3)
-
-p4 <- p3
-p4 <- subset(p4,Classificação!="Extra") 
-p4 <- subset(p4,Classificação!="Outros") 
-
-p4 <- p4 %>%  subset(Nota > 0.74)
-#p4 <- p4 %>%  subset(Tocado > 3)
-
-ggplot(p4, aes(x = Data, y = Pontos)) + 
+ggplot(p3, aes(x = Data, y = Pontos)) + 
+  # Pontos e linhas
   geom_point(aes(colour = País, size = Tocado, shape = Tipo), alpha = 0.6) + 
-  geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = País)) +  #method = lm ou loess
-  scale_shape_manual(values = 0:10) +
-  geom_line(aes(colour = País), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
-  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) + 
-  #facet_grid(.~Década, scales = "free_x", space = "free_x") + #
-  scale_size(range = c(5, 18), name = "Número de audições") +
-  geom_label_repel(aes(label = Álbum, colour = País), size=2.5, alpha= 1,box.padding = 0.35,point.padding = 0.75,segment.color = 'grey50') +
-  labs(title=" ", subtitle="",y="Pontos",x="Data", caption="", shape = "Tipo de álbum", colour = "País", fill = "País", size = "Número de audições") +
-  geom_xsideboxplot(aes(fill = País),alpha = 0.5) +
-  geom_ysideboxplot(aes(fill = País),alpha = 0.5) + #
-  stat_ellipse(geom="polygon", aes(fill = País), alpha = 0.2, show.legend = TRUE,level = 0.1) + 
-  theme_minimal() +
-  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) #, legend.position = "none") 
+  geom_line(aes(colour = País), linetype = 2, alpha = 0.3) +
+  geom_smooth(method = lm, se = FALSE, aes(colour = País), alpha = 0.6) +  
 
+  # Elementos adicionais
+  scale_shape_manual(values = 0:10) +
+  scale_size(range = c(5, 18), name = "Número de audições") +
+  geom_hline(aes(yintercept = mean(Pontos)), linetype = "dashed", alpha = 0.4) +
+  geom_label_repel(aes(label = Álbum, colour = País), 
+                   size = 2.5, box.padding = 0.35, point.padding = 0.75, 
+                   segment.color = 'grey50') +
+
+  # Boxplots laterais
+  geom_xsideboxplot(aes(fill = País), alpha = 0.5) +
+  geom_ysideboxplot(aes(fill = País), alpha = 0.5) +
+
+  # Elipses
+  stat_ellipse(geom = "polygon", aes(fill = País), alpha = 0.2, level = 0.1) + 
+
+  # Personalização
+  labs(title = " ", subtitle = "", y = "Pontos", x = "Ano de lançamento", caption = "",
+       shape = "Tipo de álbum", colour = "Artista principal", 
+       fill = "Artista principal", size = "Número de audições") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 18), 
+        axis.text = element_text(size = 14), 
+        legend.position = "right") +
+  guides(colour = guide_legend(ncol = 2), 
+         fill = guide_legend(ncol = 2), 
+         size = guide_legend(ncol = 2))
 ```
 
 Primeiro uma visão do artista ao longo do tempo.
@@ -180,7 +186,7 @@ pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 p2 <- Data
 
 p2 <- tidyr::separate_rows(p2, Artista_principal, sep = "/")
-p3 <- p2 %>% filter(str_detect(Artista.Tag, "Deep Purple|Led Zeppelin")) #Madonna|Janet Jackson|Michael Jackson
+p3 <- p2 %>% filter(str_detect(Artista.Tag, "Kendrick Lamar")) #Madonna|Janet Jackson|Michael Jackson
 #p3 <- p3 %>% filter(str_detect(Artista_principal, "Rita Lee|Os Mutantes|The Beatles|Paul McCartney")) 
 #p3 <- subset(p3, Artista == "Nick Drake") #escolher artista
 p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
