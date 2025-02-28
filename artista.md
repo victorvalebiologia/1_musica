@@ -13,9 +13,7 @@ Primeiro, vamos indicar as pastas corretas.
 
 ```
 getwd()
-#setwd("/home/valev/Área de Trabalho/R/musica/R") 
-setwd("/home/kaetes/Área de trabalho/R") 
-
+setwd("/home/valev/Área de Trabalho/R/musica/R") 
 ```
 
 Agora baixar e ler alguns pacotes básicos.
@@ -44,7 +42,6 @@ pacman::p_load(googledrive, googlesheets4, readxl)
 
 drive_auth()
 #drive_find(pattern = "musica.xlsx")
-
 
 arquivo <- drive_get("musica.xlsx")
 drive_download(file = arquivo$id, path = "musica.xlsx", type = "xlsx", overwrite = TRUE)
@@ -91,11 +88,11 @@ pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
 p3 <- Data %>% 
   tidyr::separate_rows(Artista_principal, sep = "/") %>% 
-  filter(str_detect(Gênero, "Samba") )%>% #,   # Filtrar por país
+  filter(str_detect(Categoria, "Rap Latino") )%>% #,   # Filtrar por país
          #str_detect(Gênero, "Rock"),     # Filtrar por gênero Rock
          #Artista_principal != "Shakira") %>%  # Remover Shakira
   unique() %>% 
-  filter(!Classificação %in% c("Extra", "Outros"), Nota > 0.74)  # Remover categorias indesejadas e aplicar corte de Nota
+  filter(!Classificação %in% c("Extra", "Outros"), Nota > 0.75)  # Remover categorias indesejadas e aplicar corte de Nota
 
 # Criar gráfico
 ggplot(p3, aes(x = Data, y = Pontos)) + 
@@ -131,14 +128,13 @@ ggplot(p3, aes(x = Data, y = Pontos)) +
          fill = guide_legend(ncol = 2), 
          size = guide_legend(ncol = 2))
 
-
 ``` 
 Uma visão mais macro com o ano de lançamento e os gêneros.
 
 ``` 
 p3 <- Data %>% 
   tidyr::separate_rows(Artista_principal, sep = "/") %>% 
-  filter(str_detect(Lançado, "1988") )%>% #,   # Filtrar por país
+  filter(str_detect(Lançado, "2024") )%>% #,   # Filtrar por país
          #str_detect(Gênero, "Rock"),     # Filtrar por gênero Rock
          #Artista_principal != "Shakira") %>%  # Remover Shakira
   unique() %>% 
@@ -177,29 +173,22 @@ ggplot(p3, aes(x = Data, y = Pontos)) +
   guides(colour = guide_legend(ncol = 2), 
          fill = guide_legend(ncol = 2), 
          size = guide_legend(ncol = 2))
+
 ```
 
 Primeiro uma visão do artista ao longo do tempo.
 ``` 
 pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
-p2 <- Data
+p3 <- Data %>% 
+  tidyr::separate_rows(Artista_principal, sep = "/") %>% 
+  filter(str_detect(Artista.Tag, "Led Zeppelin|Deep Purple") ) %>%  # ,Filtrar por país
+         #str_detect(Gênero, "Rock"),     # Filtrar por gênero Rock
+         #Artista_principal != "Danger Mouse") %>%  # Remover Shakira
+  unique() %>% 
+  filter(!Classificação %in% c("Extra", "Outros"), Nota > 0.79)  # Remover categorias indesejadas e aplicar corte de Nota
 
-p2 <- tidyr::separate_rows(p2, Artista_principal, sep = "/")
-p3 <- p2 %>% filter(str_detect(Artista.Tag, "Kendrick Lamar")) #Madonna|Janet Jackson|Michael Jackson
-#p3 <- p3 %>% filter(str_detect(Artista_principal, "Rita Lee|Os Mutantes|The Beatles|Paul McCartney")) 
-#p3 <- subset(p3, Artista == "Nick Drake") #escolher artista
-p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
-p3$Década <- as.factor(p3$Década)
-p3<-unique(p3)
-
-p4 <- p3
-p4 <- subset(p4,Classificação!="Extra") 
-p4 <- subset(p4,Classificação!="Outros") 
-
-p4 <- p4 %>%  subset(Nota > 0.74)
-
-ggplot(p4, aes(x = Data, y = Pontos)) + 
+ggplot(p3, aes(x = Data, y = Pontos)) + 
   geom_point(aes(colour = Artista_principal, size = Tocado, shape = Tipo), alpha = 0.6) + 
   geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Artista_principal)) +  #method = lm ou loess
   scale_shape_manual(values = 0:10) +
@@ -213,7 +202,8 @@ ggplot(p4, aes(x = Data, y = Pontos)) +
     colour = "Artista Principal", fill = "Artista Principal", size = "Número de audições") +
   geom_xsideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
   geom_ysideboxplot(aes(fill = Artista_principal),alpha = 0.5) +
-  stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.1) +        
+  stat_ellipse(geom="polygon", aes(fill = Artista_principal), alpha = 0.2, show.legend = TRUE,level = 0.25) +  
+  #stat_ellipse(geom="path", aes(color = Artista_principal), level = 0.95) +
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
   theme_minimal()
 
@@ -232,7 +222,7 @@ p4 <- p3
 #p4 <- p4 %>%  subset(Nota > 0.6)
 
 ggplot(p4, aes(x = Data, y = Total)) + 
-  geom_jitter(aes(colour = Tipo, size = Tocado, shape = Artista_principal)) + 
+  geom_point(aes(colour = Tipo, size = Tocado, shape = Artista_principal)) + 
   scale_shape_manual(values = 0:10) +
   geom_smooth(method = lm,se = FALSE, alpha = 0.6, aes(colour = Tipo)) + 
   geom_line(aes(colour = Tipo), linetype = 2, linejoin = "mitre", lineend = "butt", alpha = 0.3) +
@@ -244,7 +234,7 @@ ggplot(p4, aes(x = Data, y = Total)) +
   geom_ysideboxplot(aes(fill = Tipo), alpha = 0.5,size = 0.5) +
   geom_xsideboxplot(aes(fill = Tipo), alpha = 0.5,size = 0.5) + 
   #geom_xsidedensity(aes(fill = Tipo, y = after_stat(count)), position = "stack") +
-  stat_ellipse(geom="polygon", aes(fill = Tipo), alpha = 0.2, show.legend = TRUE, level = 0.1) +        
+  stat_ellipse(geom="polygon", aes(fill = Tipo), alpha = 0.2, show.legend = TRUE, level = 0.25) +        
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) +
   theme_minimal()
   
