@@ -84,26 +84,23 @@ Agora, considerando a localização ou o gênero relacionado ao artista com outr
 ``` 
 pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
-# Preparação dos dados
+p2 <- Data %>%
+    tidyr::separate_rows(Artista_principal, sep = "/")
+p3 <- p2 %>% filter(País %in% "Brasil")
+p3 <- p3 %>% filter(str_detect(Gênero, "Bossa Nova"))
 
-filtrar_dados <- function(Data, paises = "Canadá", generos = "Pop Music", excluir_artistas = NULL, nota_min = 0.74) {
-  Data %>% 
-    tidyr::separate_rows(Artista_principal, sep = "/") %>% 
-    filter(
-      (is.null(paises) | País %in% paises),
-      (is.null(generos) | str_detect(Gênero, paste(generos, collapse = "|"))),
-      (is.null(excluir_artistas) | !Artista_principal %in% excluir_artistas),
-      !Classificação %in% c("Extra", "Outros"),
-      Nota > nota_min
-    ) %>% 
-    distinct()
-}
+#p3 <- rbind(p3, p4)
 
-# Chamando a função corretamente
-p3 <- filtrar_dados(Data)
-p3 <- data.frame(p3)  # Se precisar garantir que seja um data.frame
+# Escolher artistas: p3 <- subset(p3, Artista_principal == "Caetano Veloso")
+# Retirar artistas: p3 <- subset(p3, Artista_principal != "Iron Maiden")
 
- 
+p3 <- unique(p3)
+
+p3 <- subset(p3, Classificação != "Extra")
+p3 <- subset(p3, Classificação != "Outros")
+p3 <- p3 %>% subset(Nota > 0.74)
+
+
 # Criar gráfico
 ggplot(p3, aes(x = Data, y = Pontos)) + 
   # Pontos e linhas
@@ -142,33 +139,25 @@ ggplot(p3, aes(x = Data, y = Pontos)) +
 Uma visão mais macro com o ano de lançamento e os gêneros.
 
 ``` 
-filtrar_dados <- function(Data, ano = NULL, generos = NULL, excluir_artistas = NULL, nota_min = 0.74) {
-  
-  # Verificar se Data não está vazio antes de filtrar
-  if (nrow(Data) == 0) {
-    warning("O dataset está vazio.")
-    return(Data)  # Retorna o próprio dataset vazio
-  }
-  
-  Data %>%
-    tidyr::separate_rows(Artista_principal, sep = "/") %>%
-    filter(
-      (is.null(ano) | str_detect(as.character(Lançado), as.character(ano))),  # Filtrando por ano corretamente
-      (is.null(generos) | (length(generos) > 0 && any(nzchar(generos)) && str_detect(Gênero, paste(generos, collapse = "|")))),  # Evita string vazia
-      (is.null(excluir_artistas) | !Artista_principal %in% excluir_artistas),
-      !Classificação %in% c("Extra", "Outros"),
-      Nota > nota_min
-    ) %>%
-    distinct()
-}
+pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
-# Testando a função
-p3 <- filtrar_dados(Data, ano = 2025)  # Deve funcionar sem erro
+p2 <- Data %>%
+    tidyr::separate_rows(Gênero, sep = "/")
+p3 <- p2 %>% filter(Lançado %in% "1970")
+#p4 <- p3 %>% filter(str_detect(Gênero, "Jazz"))
+
+#p3 <- rbind(p3, p4)
+
+# Escolher artistas: p3 <- subset(p3, Artista_principal == "Caetano Veloso")
+# Retirar artistas: p3 <- subset(p3, Artista_principal != "Iron Maiden")
+
+p3 <- p3 %>% distinct(Álbum, Unidades, .keep_all = TRUE)
+
+p3 <- subset(p3, Classificação != "Extra")
+p3 <- subset(p3, Classificação != "Outros")
+p3 <- p3 %>% subset(Nota > 0.74)
+
 nrow(p3)  # Veja se retorna o número correto de registros
-
-# Testando a função
-p3 <- filtrar_dados(Data, ano = 2025)  # Deve funcionar sem erro
-nrow(p3)  # Deve retornar o número correto de registros
 
 ggplot(p3, aes(x = Data, y = Pontos)) + 
   # Pontos e linhas
@@ -209,33 +198,22 @@ Primeiro uma visão do artista ao longo do tempo.
 ``` 
 pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
-filtrar_dados <- function(Data, 
-                          artistas_tag = NULL, 
-                          excluir_artistas = NULL, 
-                          nota_min = 0.74) {
-  
-  # Verificar se Data não está vazio antes de filtrar
-  if (nrow(Data) == 0) {
-    warning("O dataset está vazio.")
-    return(Data)  # Retorna o próprio dataset vazio
-  }
-  
-  Data %>%
-    tidyr::separate_rows(Artista_principal, sep = "/") %>%
-    filter(
-      (is.null(artistas_tag) | str_detect(Artista.Tag, paste(artistas_tag, collapse = "|"))), # Filtro por tag
-      (is.null(excluir_artistas) | !Artista_principal %in% excluir_artistas),  # Excluir artista
-      !Classificação %in% c("Extra", "Outros"), # Remover categorias
-      Nota > nota_min # Aplicar corte de nota
-    ) %>%
-    distinct()
-}
+p2 <- Data %>%
+    tidyr::separate_rows(Artista_principal, sep = "/")
+p3 <- p2 %>% filter(Artista_principal %in% c("Charlie Mingus", "Sérgio Mendes"))
+#p3 <- p3 %>% filter(str_detect(Gênero, "Bossa Nova"))
 
-# Testando a função
-p3 <- filtrar_dados(Data, 
-                    artistas_tag = c("Drake", "Kendrick Lamar"), 
-                    excluir_artistas = "Nick Drake", 
-                    nota_min = 0.74)
+#p3 <- rbind(p3, p4)
+
+# Escolher artistas: p3 <- subset(p3, Artista_principal == "Caetano Veloso")
+# Retirar artistas: p3 <- subset(p3, Artista_principal != "Iron Maiden")
+
+p3 <- unique(p3)
+
+p3 <- subset(p3, Classificação != "Extra")
+p3 <- subset(p3, Classificação != "Outros")
+p3 <- p3 %>% subset(Nota > 0.74)
+
 
 nrow(p3)  # Deve retornar o número correto de registros
 
