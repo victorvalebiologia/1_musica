@@ -13,7 +13,9 @@ Primeiro, vamos indicar as pastas corretas.
 
 ```
 getwd()
-setwd("/home/valev/Área de Trabalho/R/musica/R") 
+#setwd("/home/valev/Área de Trabalho/R/musica/R") 
+setwd("/home/kaetes/Área de trabalho/R") 
+
 ```
 
 Agora baixar e ler alguns pacotes básicos.
@@ -43,6 +45,7 @@ pacman::p_load(googledrive, googlesheets4, readxl)
 drive_auth()
 #drive_find(pattern = "musica.xlsx")
 
+
 arquivo <- drive_get("musica.xlsx")
 drive_download(file = arquivo$id, path = "musica.xlsx", type = "xlsx", overwrite = TRUE)
 
@@ -50,8 +53,6 @@ library(readxl)
 planilhatotal <- read_excel("musica.xlsx")
 
 #head(planilhatotal)
-
-
 ```
 E filtrar ela.
 ```
@@ -86,8 +87,9 @@ pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
 p2 <- Data %>%
     tidyr::separate_rows(Artista_principal, sep = "/")
-p3 <- p2 %>% filter(País %in% "Brasil")
-p3 <- p3 %>% filter(str_detect(Gênero, "Bossa Nova"))
+p3 <- p2 %>% filter(País %in% "Estados Unidos")
+p3 <- p3 %>% filter(str_detect(Categoria, "R&B"))
+#p3 <- p3 %>% filter(Lançado > 2000)
 
 #p3 <- rbind(p3, p4)
 
@@ -135,6 +137,7 @@ ggplot(p3, aes(x = Data, y = Pontos)) +
          fill = guide_legend(ncol = 2), 
          size = guide_legend(ncol = 2))
 
+
 ``` 
 Uma visão mais macro com o ano de lançamento e os gêneros.
 
@@ -143,7 +146,7 @@ pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
 p2 <- Data %>%
     tidyr::separate_rows(Gênero, sep = "/")
-p3 <- p2 %>% filter(Lançado %in% "1970")
+p3 <- p2 %>% filter(Lançado %in% "2013")
 #p4 <- p3 %>% filter(str_detect(Gênero, "Jazz"))
 
 #p3 <- rbind(p3, p4)
@@ -200,7 +203,8 @@ pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
 
 p2 <- Data %>%
     tidyr::separate_rows(Artista_principal, sep = "/")
-p3 <- p2 %>% filter(Artista_principal %in% c("Charlie Mingus", "Sérgio Mendes"))
+p3 <- p2 %>% filter(str_detect(Artista.Tag, "Beyoncé"))
+
 #p3 <- p3 %>% filter(str_detect(Gênero, "Bossa Nova"))
 
 #p3 <- rbind(p3, p4)
@@ -237,10 +241,16 @@ ggplot(p3, aes(x = Data, y = Pontos)) +
   theme_minimal()
 
 
+
+
 ``` 
 Detalhando por tipo de lançamento.
 
 ``` 
+p2 <- Data %>%
+    tidyr::separate_rows(Artista_principal, sep = "/")
+p3 <- p2 %>% filter(str_detect(Artista.Tag, "Beyoncé"))
+
 p4 <- p3
 #p4 <- subset(p4, Gravação == "Live") #escolher artista
 #p3 <- subset(p3, Artista!="Princess Chelsea") #retirar artista
@@ -268,5 +278,4 @@ ggplot(p4, aes(x = Data, y = Total)) +
   theme_minimal()
   
 #ggsave("ano.png",width = 15, height = 8, dpi = 600)
-
 ``` 
